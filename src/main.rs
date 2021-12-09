@@ -1,13 +1,8 @@
+mod color;
 mod tuple;
-use tuple::{Point, Tuple, Vector};
-fn main() {
-    let mut a = Vector::new(1, 2, 3);
 
-    assert_eq!(
-        a.to_normalized_vector(),
-        Vector::new(0.26726, 0.53452, 0.80178),
-    );
-}
+use tuple::{Point, Tuple, Vector};
+fn main() {}
 
 #[cfg(test)]
 mod tests {
