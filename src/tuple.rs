@@ -9,7 +9,7 @@ pub(crate) struct Tuple {
 }
 pub(crate) struct Point;
 pub(crate) struct Vector;
-
+// pub(crate) struct Scaling;
 impl Tuple {
     pub(crate) fn new<T: Into<f64>>(x: T, y: T, z: T, w: T) -> Self {
         Self {
@@ -68,6 +68,9 @@ impl Tuple {
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x,
         )
+    }
+    pub(crate) fn to_vec(&self) -> Vec<f64> {
+        vec![self.x, self.y, self.z, self.w]
     }
 }
 
@@ -175,6 +178,17 @@ impl PartialEq<Tuple> for &Tuple {
             return false;
         }
         true
+    }
+}
+
+impl From<Vec<f64>> for Tuple {
+    fn from(v: Vec<f64>) -> Self {
+        Self {
+            x: v[0],
+            y: v[1],
+            z: v[2],
+            w: v[3],
+        }
     }
 }
 
