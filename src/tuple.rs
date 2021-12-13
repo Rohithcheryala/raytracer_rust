@@ -1,11 +1,16 @@
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::{
+    fmt::Display,
+    ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
+};
 
-#[derive(Clone, Debug)]
+use crate::matrix::{Rotation, Scaling, Translation};
+
+#[derive(Clone, Debug, Copy)]
 pub(crate) struct Tuple {
-    x: f64,
-    y: f64,
-    z: f64,
-    w: f64, // w = 1 for Point , w = 0 for Vector
+    pub(crate) x: f64,
+    pub(crate) y: f64,
+    pub(crate) z: f64,
+    pub(crate) w: f64, // w = 1 for Point , w = 0 for Vector
 }
 pub(crate) struct Point;
 pub(crate) struct Vector;
@@ -71,6 +76,30 @@ impl Tuple {
     }
     pub(crate) fn to_vec(&self) -> Vec<f64> {
         vec![self.x, self.y, self.z, self.w]
+    }
+    pub(crate) fn translate(&mut self, x: f64, y: f64, z: f64) -> Self {
+        *self = Translation::new(x, y, z) * *self;
+        *self
+    }
+    pub(crate) fn translate_to_point(&mut self, p: Tuple) -> Self {
+        *self = Translation::new(p.x, p.y, p.z) * *self;
+        *self
+    }
+    pub(crate) fn scale(&mut self, x: f64, y: f64, z: f64) -> Self {
+        *self = Scaling::new(x, y, z) * *self;
+        *self
+    }
+    pub(crate) fn rotate_x(&mut self, x: f64) -> Self {
+        *self = Rotation::newX(x) * *self;
+        *self
+    }
+    pub(crate) fn rotate_y(&mut self, y: f64) -> Self {
+        *self = Rotation::newY(y) * *self;
+        *self
+    }
+    pub(crate) fn rotate_z(&mut self, z: f64) -> Self {
+        *self = Rotation::newZ(z) * *self;
+        *self
     }
 }
 
@@ -189,6 +218,12 @@ impl From<Vec<f64>> for Tuple {
             z: v[2],
             w: v[3],
         }
+    }
+}
+
+impl Display for Tuple {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {} {}", self.x, self.y, self.z, self.w)
     }
 }
 

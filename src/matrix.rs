@@ -1,6 +1,8 @@
+use crate::tuple::Tuple;
 use std::{
     fmt::{Debug, Formatter},
     ops::{Div, Index, IndexMut, Mul},
+    slice::{Iter, IterMut},
 };
 
 #[derive(Clone, Debug)]
@@ -167,7 +169,34 @@ impl Matrix2D {
         }
         self.adjoint() / self.det()
     }
+
+    pub(crate) fn iter(&self) -> Iter<Vec<f64>> {
+        self.inner.iter()
+    }
+
+    pub(crate) fn iter_mut(&mut self) -> IterMut<Vec<f64>> {
+        self.inner.iter_mut()
+    }
 }
+
+// struct Matrix2DIter {
+//     index: usize,
+//     init: bool,
+// }
+
+// impl Iterator for Matrix2D {
+//     type Item = Vec<i32>;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         todo!()
+//     }
+// }
+
+// impl IntoIterator for Matrix2D {
+//     type IntoIter = Vec<Vec<f64>>;
+//     fn into_iter(self) -> Self::IntoIter {
+//         self.inner
+//     }
+// }
 
 impl Index<usize> for Matrix2D {
     type Output = Vec<f64>;
@@ -195,6 +224,13 @@ impl Div<f64> for Matrix2D {
             mat.push(m)
         }
         Matrix2D { inner: mat }
+    }
+}
+
+impl Mul<Matrix2D> for Matrix2D {
+    type Output = Self;
+    fn mul(self, rhs: Matrix2D) -> Self::Output {
+        self.cross(rhs)
     }
 }
 
@@ -263,5 +299,97 @@ where
             *i = *i * *j;
         }
         self.0
+    }
+}
+
+pub(crate) struct Translation;
+
+impl Translation {
+    pub(crate) fn new(x: f64, y: f64, z: f64) -> Matrix2D {
+        Matrix2D::from(vec![
+            vec![1.0, 0.0, 0.0, x],
+            vec![0.0, 1.0, 0.0, y],
+            vec![0.0, 0.0, 1.0, z],
+            vec![0.0, 0.0, 0.0, 1.0],
+        ])
+    }
+}
+
+pub(crate) struct Scaling;
+
+impl Scaling {
+    pub(crate) fn new(x: f64, y: f64, z: f64) -> Matrix2D {
+        Matrix2D::from(vec![
+            vec![x, 0.0, 0.0, 0.0],
+            vec![0.0, y, 0.0, 0.0],
+            vec![0.0, 0.0, z, 0.0],
+            vec![0.0, 0.0, 0.0, 1.0],
+        ])
+    }
+}
+
+impl Mul<Tuple> for Matrix2D {
+    type Output = Tuple;
+    fn mul(self, rhs: Tuple) -> Self::Output {
+        let mut v = Vec::new();
+        for i in self.inner.iter() {
+            let k = Slice(i.clone()) * Slice(rhs.to_vec());
+            let mut comp = 0.0;
+            for j in k.iter() {
+                comp += *j;
+            }
+            v.push(comp)
+        }
+
+        Tuple::from(v)
+    }
+}
+
+pub(crate) enum Rotation {
+    X(f64),
+    Y(f64),
+    Z(f64),
+}
+
+impl Rotation {
+    #[allow(non_snake_case)]
+    pub(crate) fn newX(x: f64) -> Matrix2D {
+        Matrix2D::from(vec![
+            vec![1.0, 0.0, 0.0, 0.0],
+            vec![0.0, x.cos(), -x.sin(), 0.0],
+            vec![0.0, x.sin(), x.cos(), 0.0],
+            vec![0.0, 0.0, 0.0, 1.0],
+        ])
+    }
+    #[allow(non_snake_case)]
+    pub(crate) fn newY(x: f64) -> Matrix2D {
+        Matrix2D::from(vec![
+            vec![x.cos(), 0.0, x.sin(), 0.0],
+            vec![0.0, 0.0, 0.0, 0.0],
+            vec![-x.sin(), 0.0, x.cos(), 0.0],
+            vec![0.0, 0.0, 0.0, 1.0],
+        ])
+    }
+    #[allow(non_snake_case)]
+    pub(crate) fn newZ(x: f64) -> Matrix2D {
+        Matrix2D::from(vec![
+            vec![x.cos(), -x.sin(), 0.0, 0.0],
+            vec![x.sin(), x.cos(), 0.0, 0.0],
+            vec![0.0, 0.0, 1.0, 0.0],
+            vec![0.0, 0.0, 0.0, 1.0],
+        ])
+    }
+}
+
+pub(crate) struct Shearing;
+
+impl Shearing {
+    fn new(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix2D {
+        Matrix2D::from(vec![
+            vec![1.0, xy, xz, 0.0],
+            vec![yx, 1.0, yz, 0.0],
+            vec![zx, zy, 1.0, 0.0],
+            vec![0.0, 0.0, 0.0, 1.0],
+        ])
     }
 }

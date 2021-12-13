@@ -1,6 +1,6 @@
 use std::ops::{Add, Mul, Sub};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub(crate) struct Color {
     red: f64,
     green: f64,
