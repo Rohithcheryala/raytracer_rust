@@ -34,16 +34,6 @@ impl Tuple {
         assert_eq!(self.w, 0.0); // magnitude only exists for vectors
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
-    pub(crate) fn into_normalized_vector(self) -> Self {
-        let m = self.magnitude();
-
-        Tuple {
-            x: self.x / m,
-            y: self.y / m,
-            z: self.z / m,
-            w: self.w / m,
-        }
-    }
     pub(crate) fn as_normalized_vector(&self) -> Self {
         let m = self.magnitude();
 
@@ -54,17 +44,17 @@ impl Tuple {
             w: self.w / m,
         }
     }
-    pub(crate) fn to_normalized_vector(&mut self) -> &Self {
+    pub(crate) fn normalize(&mut self) -> Self {
         let m = self.magnitude();
 
         self.x /= m;
         self.y /= m;
         self.z /= m;
         self.w /= m;
-        self
+        *self
     }
     pub(crate) fn dot(&self, other: &Self) -> f64 {
-        assert_eq!(self.w, 0.0); // magnitude only exists for vectors
+        // assert_eq!(self.w, 0.0); // magnitude only exists for vectors
         self.x * other.x + self.y * other.y + self.z * other.z
     }
     pub(crate) fn cross(&self, other: &Self) -> Tuple {
@@ -100,6 +90,9 @@ impl Tuple {
     pub(crate) fn rotate_z(&mut self, z: f64) -> Self {
         *self = Rotation::newZ(z) * *self;
         *self
+    }
+    pub(crate) fn as_tuple(&self) -> (f64, f64, f64, f64) {
+        (self.x, self.y, self.z, self.w)
     }
 }
 

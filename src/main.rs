@@ -2,31 +2,39 @@
 mod canvas;
 mod color;
 mod matrix;
+mod ray;
+mod sphere;
 mod tuple;
+use crate::{
+    sphere::{Intersection, Intersections},
+    tuple::Tuple,
+};
 use canvas::Canvas;
 use color::Color;
+use ray::Ray;
+use sphere::Sphere;
 // use matrix::{Rotation, Scaling, Translation};
 use std::f64::consts::PI;
-use tuple::Point;
+use tuple::{Point, Vector};
 fn main() {
     let mut world = Canvas::new(800, 800);
-    let center = Point::new(400, 400, 0);
-    let color = Color::new(1.0, 1.0, 1.0);
-    for i in 0..6 {
-        let mut r = Point::new(200, 0, 0);
-        let k = r
-            .rotate_z(i as f64 * (2.0 * PI / 12.0))
-            .translate_to_point(center);
-        world.set_color_at_pixels(k.x, k.y, color);
-    }
-    let color = Color::new(1.0, 0.0, 0.0);
-    for i in 6..12 {
-        let mut r = Point::new(200, 0, 0);
-        let k = r
-            .rotate_z(i as f64 * (2.0 * PI / 12.0))
-            .translate_to_point(center);
-        world.set_color_at_pixels(k.x, k.y, color);
-    }
+    let mut center = Point::new(400, 400, 0);
+    let s = Sphere::new(1);
+    let r = Ray::new(Point::new(0, 0, 0), Vector::new(0, 0, 1));
+    let xs = s.intersect(r);
 
-    world.save_as_ppm("out.ppm".to_string()).unwrap();
+    let i1 = Intersection {
+        t: -1.0,
+        object: &s,
+    };
+    let i2 = Intersection {
+        t: -2.0,
+        object: &s,
+    };
+
+    let s = Intersections::new(2, i1, i2);
+
+    let xs = s.hit();
+    println!("{:?}", xs);
+    // world.save_as_ppm("out.ppm".to_string()).unwrap();
 }

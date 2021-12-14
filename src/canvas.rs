@@ -29,7 +29,6 @@ impl Canvas {
     }
 
     pub(crate) fn set_color_at_pixel(&mut self, x: f64, y: f64, color: Color) {
-        // todo!("{} {} {}", x, y, color)
         self.frame[self.height - y as usize][x as usize] = color;
     }
 
