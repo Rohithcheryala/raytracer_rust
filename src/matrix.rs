@@ -18,17 +18,24 @@ struct Slice<T>(T); // typically a row or column
 impl Matrix2D {
     pub(crate) fn new() -> Self {
         Self {
-            inner: {
-                let mut mat = Vec::new();
-                for _j in 0..4 {
-                    let mut m = Vec::new();
-                    for _i in 0..4 {
-                        m.push(0.0);
-                    }
-                    mat.push(m);
-                }
-                mat
-            },
+            inner: vec![
+                vec![0.0, 0.0, 0.0, 0.0],
+                vec![0.0, 0.0, 0.0, 0.0],
+                vec![0.0, 0.0, 0.0, 0.0],
+                vec![0.0, 0.0, 0.0, 0.0],
+            ],
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub(crate) fn Identity() -> Self {
+        Self {
+            inner: vec![
+                vec![1.0, 0.0, 0.0, 0.0],
+                vec![0.0, 1.0, 0.0, 0.0],
+                vec![0.0, 0.0, 1.0, 0.0],
+                vec![0.0, 0.0, 0.0, 1.0],
+            ],
         }
     }
 
@@ -76,7 +83,7 @@ impl Matrix2D {
         self.to_transpose()
     }
 
-    fn row(&self, row_no: usize) -> Vec<f64> {
+    pub(crate) fn row(&self, row_no: usize) -> Vec<f64> {
         let mut v = vec![];
         for i in 0..4 {
             let k = self.inner[row_no][i as usize];
@@ -85,7 +92,7 @@ impl Matrix2D {
         v
     }
 
-    fn col(&self, col_no: usize) -> Vec<f64> {
+    pub(crate) fn col(&self, col_no: usize) -> Vec<f64> {
         let mut v = vec![];
         for i in 0..4 {
             let k = self.inner[i as usize][col_no];
@@ -112,11 +119,11 @@ impl Matrix2D {
     }
 
     pub(crate) fn det(&self) -> f64 {
-        if 4 == 2 && 4 == 2 {
+        if self.inner.len() == 2 {
             return self[0][0] * self[1][1] - self[0][1] * self[1][0];
         }
         let mut det = Default::default();
-        for i in 0..4 {
+        for i in 0..self.inner.len() {
             let sign = self.sign_at(0, i as usize);
             let num = self[0][i as usize];
             let cofactor = self.cofactor_of(i as usize, 0);
@@ -131,12 +138,12 @@ impl Matrix2D {
 
     pub(crate) fn cofactor_of(&self, x: usize, y: usize) -> f64 {
         let mut a = Vec::new();
-        for j in 0..4 {
+        for j in 0..self.inner.len() {
             if j as usize == y {
                 continue;
             }
             let mut b = Vec::new();
-            for i in 0..4 {
+            for i in 0..self.inner.len() {
                 if i as usize == x {
                     continue;
                 }
@@ -178,25 +185,6 @@ impl Matrix2D {
         self.inner.iter_mut()
     }
 }
-
-// struct Matrix2DIter {
-//     index: usize,
-//     init: bool,
-// }
-
-// impl Iterator for Matrix2D {
-//     type Item = Vec<i32>;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         todo!()
-//     }
-// }
-
-// impl IntoIterator for Matrix2D {
-//     type IntoIter = Vec<Vec<f64>>;
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.inner
-//     }
-// }
 
 impl Index<usize> for Matrix2D {
     type Output = Vec<f64>;
@@ -329,6 +317,23 @@ impl Scaling {
 }
 
 impl Mul<Tuple> for Matrix2D {
+    type Output = Tuple;
+    fn mul(self, rhs: Tuple) -> Self::Output {
+        let mut v = Vec::new();
+        for i in self.inner.iter() {
+            let k = Slice(i.clone()) * Slice(rhs.to_vec());
+            let mut comp = 0.0;
+            for j in k.iter() {
+                comp += *j;
+            }
+            v.push(comp)
+        }
+
+        Tuple::from(v)
+    }
+}
+
+impl Mul<Tuple> for &Matrix2D {
     type Output = Tuple;
     fn mul(self, rhs: Tuple) -> Self::Output {
         let mut v = Vec::new();

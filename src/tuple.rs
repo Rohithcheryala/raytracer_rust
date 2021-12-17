@@ -44,14 +44,14 @@ impl Tuple {
             w: self.w / m,
         }
     }
-    pub(crate) fn normalize(&mut self) -> Self {
+    pub(crate) fn normalize(&self) -> Self {
         let m = self.magnitude();
-
-        self.x /= m;
-        self.y /= m;
-        self.z /= m;
-        self.w /= m;
-        *self
+        Self {
+            x: self.x / m,
+            y: self.y / m,
+            z: self.z / m,
+            w: self.w / m,
+        }
     }
     pub(crate) fn dot(&self, other: &Self) -> f64 {
         // assert_eq!(self.w, 0.0); // magnitude only exists for vectors

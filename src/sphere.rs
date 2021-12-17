@@ -1,10 +1,10 @@
+use super::Ray;
+use crate::{matrix::Matrix2D, tuple::Point};
 use std::ops::Index;
 
-use super::Ray;
 #[derive(Debug, Clone)]
 pub(crate) struct Sphere {
-    r: usize,
-    center: (f64, f64),
+    pub(crate) transform: Matrix2D,
 }
 
 #[derive(Debug)]
@@ -21,32 +21,36 @@ pub(crate) struct Intersection<'a> {
 }
 
 impl Sphere {
-    pub(crate) fn new(r: usize) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            r,
-            center: (0.0, 0.0),
+            transform: Matrix2D::Identity(),
         }
     }
 
+    pub(crate) fn set_transform(&mut self, t: Matrix2D) {
+        self.transform = t;
+    }
+
     pub(crate) fn intersect(&self, r: Ray) -> Intersections {
-        // todo!()
+        let r = r.transform(self.transform.inverse());
+        let sphere_to_ray = r.origin - Point::new(0.0, 0.0, 0.0);
         // origin: (Ox, Oy,Oz)
-        // let k: (f64, f64, f64, f64) = r.origin.into();
         // let (ox, oy, oz, _ow) = r.origin.as_tuple();
         // direction: (dx,dy,dz)
         // let (dx, dy, dz, _dw) = r.direction.as_tuple();
         // any point on ray: ( Ox+(dx*t), Oy+(dy*t), Oz+(dz*t) )
         // if distance of this point from sphere center is r then
         // this point lies on the sphere
-        // eqn: x^2 + y^2 + z^2 = r ^2
+        // eqn: x^2 + y^2 + z^2 = r^2 = 1^2
         // substituting and rearranging the terms gives
-        // (dx^2+dy^2+dz^2)t^2 + 2(Oxdx+Oydy+Ozdz)t + (Ox^2+Oy^2+Oz^2-r^2) = 0
+        // (dx^2+dy^2+dz^2)t^2 + 2(oxdx+oydy+ozdz)t + (ox^2+oy^2+oz^2-r^2) - 1 = 0
         let a = r.direction.dot(&r.direction); // dx.powi(2) + dy.powi(2) + dz.powi(2);
-        let b = 2.0 * r.origin.dot(&r.direction); // 2.0 * (ox * dx + oy * dy + oz * dz);
-        let c = r.origin.dot(&r.origin) - (self.r as f64).powi(2); // ox.powi(2) + oy.powi(2) + oz.powi(2) - (self.r as f64).powi(2);
+        let b = 2.0 * r.direction.dot(&sphere_to_ray); // 2.0 * (ox * dx + oy * dy + oz * dz);
+        let c = sphere_to_ray.dot(&sphere_to_ray) - 1.0; // ox.powi(2) + oy.powi(2) + oz.powi(2) - (self.r as f64).powi(2);
         let disc = b * b - 4.0 * a * c;
-        let d1 = (-b - disc.sqrt()) / 2.0 * a;
-        let d2 = (-b + disc.sqrt()) / 2.0 * a;
+        let d1 = (-b - disc.sqrt()) / (2.0 * a);
+        let d2 = (-b + disc.sqrt()) / (2.0 * a);
+
         Intersections {
             count: 2,
             i1: Intersection {
@@ -58,6 +62,12 @@ impl Sphere {
                 object: self,
             },
         }
+    }
+}
+
+impl Default for Sphere {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
