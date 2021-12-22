@@ -94,6 +94,9 @@ impl Tuple {
     pub(crate) fn as_tuple(&self) -> (f64, f64, f64, f64) {
         (self.x, self.y, self.z, self.w)
     }
+    pub(crate) fn reflect(&self, normal: Tuple) -> Tuple {
+        *self - normal * 2.0 * self.dot(&normal)
+    }
 }
 
 impl Add for Tuple {

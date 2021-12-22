@@ -1,10 +1,25 @@
 use super::Ray;
-use crate::{matrix::Matrix2D, tuple::Point};
+use crate::{
+    color::Color,
+    matrix::Matrix2D,
+    point_light::PointLight,
+    tuple::{Point, Tuple},
+};
 use std::ops::Index;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Sphere {
     pub(crate) transform: Matrix2D,
+    pub(crate) material: Material,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Material {
+    pub(crate) color: Color,
+    ambient: f32,
+    diffuse: f32,
+    specular: f32,
+    shininess: f32,
 }
 
 #[derive(Debug)]
@@ -24,6 +39,7 @@ impl Sphere {
     pub(crate) fn new() -> Self {
         Self {
             transform: Matrix2D::Identity(),
+            material: Material::default(),
         }
     }
 
@@ -63,11 +79,31 @@ impl Sphere {
             },
         }
     }
+
+    pub(crate) fn normal_at(&self, world_point: Tuple) -> Tuple {
+        let object_point = self.transform.inverse() * world_point;
+        let object_normal = object_point - Point::new(0.0, 0.0, 0.0);
+        let mut world_normal = self.transform.inverse() * object_normal;
+        world_normal.w = 0.0;
+        world_normal.normalize()
+    }
 }
 
 impl Default for Sphere {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Default for Material {
+    fn default() -> Self {
+        Self {
+            color: Color::default(),
+            ambient: 0.1,
+            diffuse: 0.9,
+            specular: 0.9,
+            shininess: 200.0,
+        }
     }
 }
 
@@ -103,5 +139,38 @@ impl<'a> Intersections<'a> {
         } else {
             None
         }
+    }
+}
+
+impl Material {
+    pub(crate) fn lighting(
+        &self,
+        light: PointLight,
+        point: Tuple,
+        eyev: Tuple,
+        normalv: Tuple,
+    ) -> Color {
+        let effective_color = self.color * light.intensity;
+        let ambient = effective_color * self.ambient;
+
+        let lightv = (light.position - point).normalize();
+        let light_dot_normal = (lightv).dot(&normalv);
+        let diffuse;
+        let specular;
+        if light_dot_normal < 0f64 {
+            diffuse = Color::black();
+            specular = Color::black();
+        } else {
+            diffuse = effective_color * self.diffuse * light_dot_normal;
+            let reflectv = (-lightv).reflect(normalv);
+            let reflect_dot_eye = reflectv.dot(&eyev);
+            if reflect_dot_eye <= 0f64 {
+                specular = Color::black();
+            } else {
+                let factor = reflect_dot_eye.powf(self.shininess as f64);
+                specular = light.intensity * self.specular * factor;
+            }
+        }
+        ambient + diffuse + specular
     }
 }

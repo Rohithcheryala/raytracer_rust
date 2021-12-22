@@ -1,6 +1,9 @@
 use std::ops::{Add, Mul, Sub};
 
-#[derive(Clone, Copy)]
+// Color struct holds fraction of value of RGB values not RGB values
+// ex: RGB(255,255,255) <==> Color {red: 1.0, green:1.0, blue: 1.0}
+// ex: RGB(100,100,100) <==> Color {red: 100/255, green:100/255, blue: 100/255}
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct Color {
     red: f64,
     green: f64,
@@ -10,6 +13,10 @@ pub(crate) struct Color {
 impl Color {
     pub(crate) fn new(red: f64, green: f64, blue: f64) -> Self {
         Self { red, green, blue }
+    }
+
+    pub(crate) fn black() -> Self {
+        Self::new(0.0, 0.0, 0.0)
     }
 
     #[inline]
@@ -53,12 +60,27 @@ impl Mul for Color {
     }
 }
 
+impl<T> Mul<T> for Color
+where
+    f64: From<T>,
+    T: Copy,
+{
+    type Output = Self;
+    fn mul(self, rhs: T) -> Self::Output {
+        Self {
+            red: self.red * f64::from(rhs),
+            green: self.green * f64::from(rhs),
+            blue: self.blue * f64::from(rhs),
+        }
+    }
+}
+
 impl Default for Color {
     fn default() -> Self {
         Self {
-            red: 255.0,
-            green: 255.0,
-            blue: 255.0,
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
         }
     }
 }

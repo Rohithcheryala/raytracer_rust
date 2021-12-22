@@ -29,7 +29,7 @@ impl Canvas {
     }
 
     pub(crate) fn set_color_at_pixel(&mut self, x: f64, y: f64, color: Color) {
-        self.frame[self.height - y as usize][x as usize] = color;
+        self.frame[y as usize][x as usize] = color;
     }
 
     pub(crate) fn set_color_at_pixels(&mut self, x: f64, y: f64, color: Color) {
