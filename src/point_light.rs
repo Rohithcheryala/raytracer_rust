@@ -2,15 +2,16 @@ use crate::{color::Color, tuple::Tuple};
 
 #[derive(Debug)]
 pub(crate) struct PointLight {
-    pub(crate) intensity: Color,
     pub(crate) position: Tuple, // Point
+    pub(crate) intensity: Color,
 }
 
 impl PointLight {
-    pub(crate) fn new(intensity: Color, position: Tuple) -> Self {
+    #[inline]
+    pub(crate) fn new(position: Tuple, intensity: Color) -> Self {
         Self {
-            intensity,
             position,
+            intensity,
         }
     }
 }

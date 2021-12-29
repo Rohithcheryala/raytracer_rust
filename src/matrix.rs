@@ -5,31 +5,39 @@ use std::{
     slice::{Iter, IterMut},
 };
 
+/// TODO: Improve Matrix struct by changing the type of inner
+/// can use 1D vec ` Vec<f64> ` instead of 2D vec `Vec<Vec<f64>>`
+/// ? also why to use vecs ?
+/// try to use arrays instead, tried and failed
+/// ```
+/// let len = 4;
+/// let arr = [0; len]; //Error: attempt to use a non-constant value in a constant non-constant value
+/// ```
+/// * try using unsafe blocks and pointers
 #[derive(Clone, Debug)]
-pub(crate) struct Matrix2D {
-    pub inner: Vec<Vec<f64>>,
+pub(crate) struct Matrix {
+    pub(crate) inner: Vec<Vec<f64>>,
 }
-
+pub(crate) struct Translation;
+pub(crate) struct Scaling;
+pub(crate) enum Rotation {
+    X(f64),
+    Y(f64),
+    Z(f64),
+}
+pub(crate) struct Shearing;
 struct Slice<T>(T); // typically a row or column
 
-// TODO: replace all(max) Vec::new() with Vec::with_capacity()
-// can be done it many places as we already nrows,ncols
-// ex: in new() ~~~let mut mat = Vec::new()~~~ => to Vec::with_capacity(nrows)
-impl Matrix2D {
-    pub(crate) fn new() -> Self {
+impl Matrix {
+    pub(crate) fn new(size: usize) -> Self {
         Self {
-            inner: vec![
-                vec![0.0, 0.0, 0.0, 0.0],
-                vec![0.0, 0.0, 0.0, 0.0],
-                vec![0.0, 0.0, 0.0, 0.0],
-                vec![0.0, 0.0, 0.0, 0.0],
-            ],
+            inner: vec![vec![0.0; size]; size],
         }
     }
 
     #[allow(non_snake_case)]
-    pub(crate) fn Identity() -> Self {
-        Self {
+    pub(crate) fn Identity() -> Matrix {
+        Matrix {
             inner: vec![
                 vec![1.0, 0.0, 0.0, 0.0],
                 vec![0.0, 1.0, 0.0, 0.0],
@@ -39,43 +47,39 @@ impl Matrix2D {
         }
     }
 
-    pub(crate) fn size(&self) -> (i64, i64) {
-        (4, 4)
+    #[inline]
+    pub(crate) fn len(&self) -> usize {
+        self.inner.len()
     }
 
-    pub(crate) fn as_transpose(&self) -> Self {
-        let inner = {
-            let mut mat = Vec::new();
-            for j in 0..4 {
-                let mut m = Vec::new();
-                for i in 0..4 {
-                    m.push(self.inner[i as usize][j as usize]);
-                }
-                mat.push(m);
+    #[inline]
+    pub(crate) fn size(&self) -> (usize, usize) {
+        (self.inner[0].len(), self.inner.len())
+    }
+
+    pub(crate) fn transpose(&self) -> Self {
+        let mut mat = Self::new(self.len());
+        for j in 0..self.len() {
+            for i in 0..self.len() {
+                mat[j][i] = self.inner[i as usize][j as usize];
             }
-            mat
-        };
-        Self { inner }
+        }
+        mat
     }
 
     #[allow(non_snake_case)]
-    pub(crate) fn as_T(&self) -> Self {
-        self.as_transpose()
+    pub(crate) fn T(&self) -> Self {
+        self.transpose()
     }
 
     pub(crate) fn to_transpose(&mut self) {
-        let inner = {
-            let mut mat = Vec::new();
-            for j in 0..4 {
-                let mut m = Vec::new();
-                for i in 0..4 {
-                    m.push(self.inner[i as usize][j as usize]);
-                }
-                mat.push(m);
+        let mut mat = Self::new(self.len());
+        for j in 0..self.len() {
+            for i in 0..self.len() {
+                mat[j][i] = self.inner[i as usize][j as usize];
             }
-            mat
-        };
-        *self = Self { inner };
+        }
+        *self = mat;
     }
 
     #[allow(non_snake_case)]
@@ -84,46 +88,42 @@ impl Matrix2D {
     }
 
     pub(crate) fn row(&self, row_no: usize) -> Vec<f64> {
-        let mut v = vec![];
-        for i in 0..4 {
-            let k = self.inner[row_no][i as usize];
-            v.push(k);
+        let mut row = Vec::with_capacity(self.len());
+        for i in 0..self.len() {
+            row[i] = self[row_no][i as usize];
         }
-        v
+        row
     }
 
     pub(crate) fn col(&self, col_no: usize) -> Vec<f64> {
-        let mut v = vec![];
-        for i in 0..4 {
-            let k = self.inner[i as usize][col_no];
-            v.push(k);
+        let mut col = Vec::with_capacity(self.len());
+        for i in 0..self.len() {
+            col[i] = self[i as usize][col_no];
         }
-        v
+        col
     }
 
     pub(crate) fn cross(&self, other: Self) -> Self {
-        let mut cross_mat = Vec::new();
-        for j in 0..4 {
-            let mut m = Vec::new();
-            for i in 0..4 {
+        let mut cross_mat = Self::new(self.len());
+        for j in 0..self.len() {
+            for i in 0..self.len() {
                 let comp = Slice(other.col(i as usize)) * Slice(self.row(j as usize));
-                let mut sum = Default::default();
+                let mut sum = f64::default();
                 for i in comp {
                     sum = sum + i;
                 }
-                m.push(sum);
+                cross_mat[j][i] = sum;
             }
-            cross_mat.push(m);
         }
-        Self { inner: cross_mat }
+        cross_mat
     }
 
     pub(crate) fn det(&self) -> f64 {
         if self.inner.len() == 2 {
             return self[0][0] * self[1][1] - self[0][1] * self[1][0];
         }
-        let mut det = Default::default();
-        for i in 0..self.inner.len() {
+        let mut det = f64::default();
+        for i in 0..(self.inner.len()) {
             let sign = self.sign_at(0, i as usize);
             let num = self[0][i as usize];
             let cofactor = self.cofactor_of(i as usize, 0);
@@ -137,42 +137,43 @@ impl Matrix2D {
     }
 
     pub(crate) fn cofactor_of(&self, x: usize, y: usize) -> f64 {
-        let mut a = Vec::new();
-        for j in 0..self.inner.len() {
+        let size = self.inner.len() - 1;
+        let mut cof_mat = Matrix::new(size);
+        let mut after_x = 0;
+        let mut after_y = 0;
+        for j in 0..self.len() {
             if j as usize == y {
+                after_y += 1;
                 continue;
             }
-            let mut b = Vec::new();
-            for i in 0..self.inner.len() {
+            for i in 0..self.len() {
                 if i as usize == x {
+                    after_x += 1;
                     continue;
                 }
-                b.push(self.inner[j as usize][i as usize]);
+                cof_mat[j - after_y][i - after_x] = self.inner[j as usize][i as usize];
             }
-            a.push(b);
+            after_x = 0;
         }
-        Self { inner: a }.det()
+        cof_mat.det()
     }
 
     pub(crate) fn adjoint(&self) -> Self {
-        let mut inner = Vec::new();
-        for j in 0..4 {
-            let mut m = Vec::new();
-            for i in 0..4 {
+        let mut adjoint_mat = Self::new(self.len());
+        for j in 0..self.len() {
+            for i in 0..self.len() {
                 let sign = self.sign_at(i as usize, j as usize);
-                m.push(sign * self.cofactor_of(i as usize, j as usize));
+                adjoint_mat[j][i] = sign * self.cofactor_of(i as usize, j as usize);
             }
-            inner.push(m);
         }
-        let mut adjoint_mat = Self { inner };
         adjoint_mat.to_T();
         adjoint_mat
     }
 
-    pub(crate) fn inverse(&self) -> Matrix2D {
+    pub(crate) fn inverse(&self) -> Matrix {
         let det = self.det();
         if det == 0.0 {
-            panic!("Cannot invert this shit")
+            panic!("Cannot invert a Matrix with determinant = 0")
         }
         self.adjoint() / self.det()
     }
@@ -186,7 +187,7 @@ impl Matrix2D {
     }
 }
 
-impl Index<usize> for Matrix2D {
+impl Index<usize> for Matrix {
     type Output = Vec<f64>;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -194,69 +195,67 @@ impl Index<usize> for Matrix2D {
     }
 }
 
-impl IndexMut<usize> for Matrix2D {
+impl IndexMut<usize> for Matrix {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.inner[index]
     }
 }
 
-impl Div<f64> for Matrix2D {
-    type Output = Matrix2D;
-    fn div(mut self, rhs: f64) -> Self::Output {
-        let mut mat = Vec::new();
-        for j in self.inner.iter_mut() {
-            let mut m = Vec::new();
-            for i in j.iter_mut() {
-                m.push(f64::from(*i) / f64::from(rhs));
+impl Div<f64> for Matrix {
+    type Output = Matrix;
+    fn div(self, rhs: f64) -> Self::Output {
+        let mut mat = Self::new(4);
+        for (j, row) in self.iter().enumerate() {
+            for (i, val) in row.iter().enumerate() {
+                mat[j][i] = f64::from(*val) / f64::from(rhs);
             }
-            mat.push(m)
         }
-        Matrix2D { inner: mat }
+        mat
     }
 }
 
-impl Mul<Matrix2D> for Matrix2D {
+impl Mul<Matrix> for Matrix {
     type Output = Self;
-    fn mul(self, rhs: Matrix2D) -> Self::Output {
+    fn mul(self, rhs: Matrix) -> Self::Output {
         self.cross(rhs)
     }
 }
 
-impl<T> From<Vec<Vec<T>>> for Matrix2D
+impl IntoIterator for Matrix {
+    type Item = Vec<f64>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
+    }
+}
+
+impl<T> From<Vec<Vec<T>>> for Matrix
 where
     f64: From<T>,
     T: Copy,
 {
-    fn from(vec: Vec<Vec<T>>) -> Self {
-        Self {
-            inner: {
-                let mut mat = Vec::new();
-                for j in 0..4 {
-                    let mut m = Vec::new();
-                    for i in 0..4 {
-                        m.push(vec[j][i].into());
-                    }
-                    mat.push(m);
-                }
-                mat
-            },
+    fn from(v: Vec<Vec<T>>) -> Self {
+        let mut mat = Self::new(v.len());
+        for j in 0..v.len() {
+            for i in 0..v[0].len() {
+                mat[j][i] = v[j][i].into();
+            }
         }
+        mat
     }
 }
 
-// TODO: fix spacing problem
-// HELP: instead of using `out.push_str("  ");` two times ,
-// convert T.to_string() and then add required no.of spaces
-// ex: 2.to_string() gives "2" => add 3 spaces   => "   2" // now they look uniform
-// ex: 34.to_string() gives "34" => add 2 spaces => "  34" // now they look uniform
-impl std::fmt::Display for Matrix2D {
+// check: fix spacing problem
+impl std::fmt::Display for Matrix {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut out = String::new();
+        let max_chars = 5;
         for j in self.inner.iter() {
             for i in j.iter() {
-                out.push_str("  ");
-                out.push_str(&i.to_string());
-                out.push_str("  ");
+                let i_as_str = i.to_string();
+                out.push_str(&i_as_str);
+                out.push_str(&" ".repeat(max_chars - i_as_str.len()));
             }
             out.push_str("\n")
         }
@@ -290,94 +289,106 @@ where
     }
 }
 
-pub(crate) struct Translation;
+impl Mul<Tuple> for Matrix {
+    type Output = Tuple;
+    fn mul(self, rhs: Tuple) -> Self::Output {
+        let mut v = Vec::new();
+        for i in self.inner.into_iter() {
+            let k = Slice(i) * Slice(rhs.to_vec());
+            let mut comp = 0.0;
+            for j in k.iter() {
+                comp += *j;
+            }
+            v.push(comp)
+        }
+
+        Tuple::from(v)
+    }
+}
+
+impl Mul<Tuple> for &Matrix {
+    type Output = Tuple;
+    fn mul(self, rhs: Tuple) -> Self::Output {
+        let mut v = Vec::new();
+        for i in self.inner.iter() {
+            let k = Slice(i.clone()) * Slice(rhs.to_vec());
+            let mut comp = 0.0;
+            for j in k.iter() {
+                comp += *j;
+            }
+            v.push(comp)
+        }
+
+        Tuple::from(v)
+    }
+}
+
+impl<T, const N: usize> Mul<Slice<Vec<T>>> for Slice<[T; N]>
+where
+    f64: From<T>,
+    T: Copy + std::ops::Mul<Output = T>,
+{
+    type Output = [T; N];
+    fn mul(mut self, rhs: Slice<Vec<T>>) -> Self::Output {
+        for (i, j) in self.0.iter_mut().zip(rhs.0.iter()) {
+            *i = *i * *j;
+        }
+        self.0
+    }
+}
 
 impl Translation {
-    pub(crate) fn new(x: f64, y: f64, z: f64) -> Matrix2D {
-        Matrix2D::from(vec![
-            vec![1.0, 0.0, 0.0, x],
-            vec![0.0, 1.0, 0.0, y],
-            vec![0.0, 0.0, 1.0, z],
+    pub(crate) fn new<T>(x: T, y: T, z: T) -> Matrix
+    where
+        f64: From<T>,
+    {
+        Matrix::from(vec![
+            vec![1.0, 0.0, 0.0, f64::from(x)],
+            vec![0.0, 1.0, 0.0, f64::from(y)],
+            vec![0.0, 0.0, 1.0, f64::from(z)],
             vec![0.0, 0.0, 0.0, 1.0],
         ])
     }
 }
-
-pub(crate) struct Scaling;
 
 impl Scaling {
-    pub(crate) fn new(x: f64, y: f64, z: f64) -> Matrix2D {
-        Matrix2D::from(vec![
-            vec![x, 0.0, 0.0, 0.0],
-            vec![0.0, y, 0.0, 0.0],
-            vec![0.0, 0.0, z, 0.0],
+    pub(crate) fn new<T>(x: T, y: T, z: T) -> Matrix
+    where
+        f64: From<T>,
+    {
+        Matrix::from(vec![
+            vec![f64::from(x), 0.0, 0.0, 0.0],
+            vec![0.0, f64::from(y), 0.0, 0.0],
+            vec![0.0, 0.0, f64::from(z), 0.0],
             vec![0.0, 0.0, 0.0, 1.0],
         ])
     }
-}
-
-impl Mul<Tuple> for Matrix2D {
-    type Output = Tuple;
-    fn mul(self, rhs: Tuple) -> Self::Output {
-        let mut v = Vec::new();
-        for i in self.inner.iter() {
-            let k = Slice(i.clone()) * Slice(rhs.to_vec());
-            let mut comp = 0.0;
-            for j in k.iter() {
-                comp += *j;
-            }
-            v.push(comp)
-        }
-
-        Tuple::from(v)
-    }
-}
-
-impl Mul<Tuple> for &Matrix2D {
-    type Output = Tuple;
-    fn mul(self, rhs: Tuple) -> Self::Output {
-        let mut v = Vec::new();
-        for i in self.inner.iter() {
-            let k = Slice(i.clone()) * Slice(rhs.to_vec());
-            let mut comp = 0.0;
-            for j in k.iter() {
-                comp += *j;
-            }
-            v.push(comp)
-        }
-
-        Tuple::from(v)
-    }
-}
-
-pub(crate) enum Rotation {
-    X(f64),
-    Y(f64),
-    Z(f64),
 }
 
 impl Rotation {
     #[allow(non_snake_case)]
-    pub(crate) fn newX(x: f64) -> Matrix2D {
-        Matrix2D::from(vec![
+    pub(crate) fn newX(x: f64) -> Matrix {
+        Matrix::from(vec![
             vec![1.0, 0.0, 0.0, 0.0],
             vec![0.0, x.cos(), -x.sin(), 0.0],
             vec![0.0, x.sin(), x.cos(), 0.0],
             vec![0.0, 0.0, 0.0, 1.0],
         ])
     }
+
     #[allow(non_snake_case)]
-    pub(crate) fn newY(x: f64) -> Matrix2D {
-        Matrix2D::from(vec![
+    pub(crate) fn newY(x: f64) -> Matrix {
+        Matrix::from(vec![
             vec![x.cos(), 0.0, x.sin(), 0.0],
             vec![0.0, 0.0, 0.0, 0.0],
             vec![-x.sin(), 0.0, x.cos(), 0.0],
             vec![0.0, 0.0, 0.0, 1.0],
         ])
     }
+
     #[allow(non_snake_case)]
-    pub(crate) fn newZ(x: f64) -> Matrix2D {
-        Matrix2D::from(vec![
+    pub(crate) fn newZ(x: f64) -> Matrix {
+        Matrix::from(vec![
             vec![x.cos(), -x.sin(), 0.0, 0.0],
             vec![x.sin(), x.cos(), 0.0, 0.0],
             vec![0.0, 0.0, 1.0, 0.0],
@@ -386,11 +397,9 @@ impl Rotation {
     }
 }
 
-pub(crate) struct Shearing;
-
 impl Shearing {
-    fn new(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix2D {
-        Matrix2D::from(vec![
+    fn new(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix {
+        Matrix::from(vec![
             vec![1.0, xy, xz, 0.0],
             vec![yx, 1.0, yz, 0.0],
             vec![zx, zy, 1.0, 0.0],
