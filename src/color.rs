@@ -65,9 +65,9 @@ impl ToRGB for Color {}
 impl Add for Color {
     type Output = Self;
     fn add(mut self, rhs: Self) -> Self::Output {
-        self.red = self.red + rhs.red;
-        self.green = self.green + rhs.green;
-        self.blue = self.blue + rhs.blue;
+        self.red += rhs.red;
+        self.green += rhs.green;
+        self.blue += rhs.blue;
         self
     }
 }
@@ -75,9 +75,9 @@ impl Add for Color {
 impl Sub for Color {
     type Output = Self;
     fn sub(mut self, rhs: Self) -> Self::Output {
-        self.red = self.red - rhs.red;
-        self.green = self.green - rhs.green;
-        self.blue = self.blue - rhs.blue;
+        self.red -= rhs.red;
+        self.green -= rhs.green;
+        self.blue -= rhs.blue;
         self
     }
 }
@@ -85,9 +85,9 @@ impl Sub for Color {
 impl Mul for Color {
     type Output = Self;
     fn mul(mut self, rhs: Self) -> Self::Output {
-        self.red = self.red * rhs.red;
-        self.green = self.green * rhs.green;
-        self.blue = self.blue * rhs.blue;
+        self.red *= rhs.red;
+        self.green *= rhs.green;
+        self.blue *= rhs.blue;
         self
     }
 }

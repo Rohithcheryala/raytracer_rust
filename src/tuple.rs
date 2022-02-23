@@ -171,10 +171,10 @@ where
 {
     type Output = Self;
     fn mul(mut self, rhs: T) -> Self::Output {
-        self.x = self.x * rhs.into();
-        self.y = self.y * rhs.into();
-        self.z = self.z * rhs.into();
-        self.w = self.w * rhs.into();
+        self.x *= rhs.into();
+        self.y *= rhs.into();
+        self.z *= rhs.into();
+        self.w *= rhs.into();
 
         self
     }

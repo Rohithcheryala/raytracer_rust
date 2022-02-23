@@ -88,19 +88,23 @@ impl Matrix {
     }
 
     pub(crate) fn row(&self, row_no: usize) -> Vec<f64> {
-        let mut row = Vec::with_capacity(self.len());
-        for i in 0..self.len() {
-            row[i] = self[row_no][i as usize];
-        }
-        row
+        // let mut row = Vec::with_capacity(self.len());
+        // for i in 0..self.len() {
+        //     row.push(self[row_no][i as usize]);
+        // }
+        // clippy recommended
+        self.iter().nth(row_no).unwrap().clone()
+        // row
     }
 
     pub(crate) fn col(&self, col_no: usize) -> Vec<f64> {
-        let mut col = Vec::with_capacity(self.len());
-        for i in 0..self.len() {
-            col[i] = self[i as usize][col_no];
-        }
-        col
+        // let mut col = Vec::with_capacity(self.len());
+        // for i in 0..self.len() {
+        //     col.push(self[i as usize][col_no]);
+        // }
+        // clippy recommended
+        self.iter().map(|v| (v[col_no])).collect()
+        // col
     }
 
     pub(crate) fn cross(&self, other: Self) -> Self {
@@ -110,7 +114,7 @@ impl Matrix {
                 let comp = Slice(other.col(i as usize)) * Slice(self.row(j as usize));
                 let mut sum = f64::default();
                 for i in comp {
-                    sum = sum + i;
+                    sum += i;
                 }
                 cross_mat[j][i] = sum;
             }
@@ -127,7 +131,7 @@ impl Matrix {
             let sign = self.sign_at(0, i as usize);
             let num = self[0][i as usize];
             let cofactor = self.cofactor_of(i as usize, 0);
-            det = det + (sign * num * cofactor);
+            det += sign * num * cofactor;
         }
         det
     }
@@ -207,7 +211,7 @@ impl Div<f64> for Matrix {
         let mut mat = Self::new(4);
         for (j, row) in self.iter().enumerate() {
             for (i, val) in row.iter().enumerate() {
-                mat[j][i] = f64::from(*val) / f64::from(rhs);
+                mat[j][i] = (*val) / rhs;
             }
         }
         mat
@@ -257,7 +261,7 @@ impl std::fmt::Display for Matrix {
                 out.push_str(&i_as_str);
                 out.push_str(&" ".repeat(max_chars - i_as_str.len()));
             }
-            out.push_str("\n")
+            out.push('\n')
         }
         write!(f, "{}", out)
     }

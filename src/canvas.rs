@@ -9,7 +9,7 @@ pub(crate) trait Sized {
 pub(crate) trait ToPPM: Sized {
     fn header(&self) -> String {
         let mut output = String::new();
-        output = output + format!("P3\n{} {}\n255\n", self.width(), self.height()).as_str();
+        output += format!("P3\n{} {}\n255\n", self.width(), self.height()).as_str();
         output
     }
     fn to_ppm(&self) -> String;
@@ -56,8 +56,8 @@ impl ToPPM for Canvas {
 
         for j in 0..(self.height as i64) {
             for i in 0..(self.width as i64) {
-                output = output
-                    + format!("{}\n", self.frame[j as usize][i as usize].to_rgb_string()).as_str();
+                output +=
+                    format!("{}\n", self.frame[j as usize][i as usize].to_rgb_string()).as_str();
             }
         }
 
