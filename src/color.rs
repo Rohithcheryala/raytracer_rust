@@ -1,17 +1,14 @@
-use crate::EPSILON;
+use crate::consts::EPSILON;
 use std::ops::{Add, Mul, Sub};
 
-pub(crate) trait RGB {
+pub trait RGB {
     fn red(&self) -> f64;
     fn green(&self) -> f64;
     fn blue(&self) -> f64;
 }
 
-pub(crate) trait ToRGB {
-    fn to_rgb_string(&self) -> String
-    where
-        Self: RGB,
-    {
+pub trait ToRGB: RGB {
+    fn to_rgb_string(&self) -> String {
         format!(
             "{} {} {}",
             (self.red() * 255_f64) as i64,
@@ -26,24 +23,24 @@ pub(crate) trait ToRGB {
 / ex: RGB(100,100,100) <==> Color {red: 100/255, green:100/255, blue: 100/255}
  */
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct Color {
+pub struct Color {
     red: f64,
     green: f64,
     blue: f64,
 }
 
 impl Color {
-    pub(crate) fn new(red: f64, green: f64, blue: f64) -> Self {
+    pub fn new(red: f64, green: f64, blue: f64) -> Self {
         Self { red, green, blue }
     }
 
     #[inline]
-    pub(crate) fn white() -> Self {
+    pub fn white() -> Self {
         Self::new(1.0, 1.0, 1.0)
     }
 
     #[inline]
-    pub(crate) fn black() -> Self {
+    pub fn black() -> Self {
         Self::new(0.0, 0.0, 0.0)
     }
 }
@@ -94,19 +91,19 @@ impl Mul for Color {
 
 impl<T> Mul<T> for Color
 where
-    f64: From<T>,
-    T: Copy,
+    T: Into<f64> + Copy,
 {
     type Output = Self;
     fn mul(self, rhs: T) -> Self::Output {
         Self {
-            red: self.red * f64::from(rhs),
-            green: self.green * f64::from(rhs),
-            blue: self.blue * f64::from(rhs),
+            red: self.red * rhs.into(),
+            green: self.green * rhs.into(),
+            blue: self.blue * rhs.into(),
         }
     }
 }
 
+/// Default color is white(1, 1, 1)
 impl Default for Color {
     fn default() -> Self {
         Self {

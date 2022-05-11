@@ -1,22 +1,30 @@
-use crate::matrix::{Rotation, Scaling, Translation};
-use crate::EPSILON;
+use crate::consts::EPSILON;
 use std::{
     fmt::Display,
     ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
+/// A tuple of 4 floating point numbers.
+/// This is used to represent a point or vector depending on 4th component in 3D space.
+/// 4th component is w, which can be either 0 or 1.
+/// w: 1 means the tuple is a point,
+/// w: 0 means the tuple is a vector.
+/// ```
+/// use raytracer_rust::tuple::Tuple;
+/// let point = Tuple { x: 1.0, y: 2.0, z: 3.0, w: 1.0 };
+/// let vector = Tuple { x: 1.0, y: 2.0, z: 3.0, w: 0.0 };
+/// ```
 #[derive(Clone, Debug, Copy)]
-pub(crate) struct Tuple {
-    pub(crate) x: f64,
-    pub(crate) y: f64,
-    pub(crate) z: f64,
-    pub(crate) w: f64, // w = 1 for Point , w = 0 for Vector
+pub struct Tuple {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub w: f64,
 }
-pub(crate) struct Point;
-pub(crate) struct Vector;
+
 impl Tuple {
     #[inline]
-    pub(crate) fn new<T: Into<f64>>(x: T, y: T, z: T, w: T) -> Self {
+    pub fn new<T: Into<f64>>(x: T, y: T, z: T, w: T) -> Self {
         Self {
             x: x.into(),
             y: y.into(),
@@ -25,31 +33,72 @@ impl Tuple {
         }
     }
 
-    pub(crate) fn is_point(&self) -> bool {
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let point = Tuple::Point(1.0, 2.0, 3.0);
+    /// assert!(point.is_point());
+    /// ```
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn Point<T: Into<f64>>(x: T, y: T, z: T) -> Tuple {
+        Tuple {
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+            w: 1.0,
+        }
+    }
+
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple::Vector(1.0, 2.0, 3.0);
+    /// assert!(vector.is_vector());
+    /// ```
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn Vector<T: Into<f64>>(x: T, y: T, z: T) -> Tuple {
+        Tuple {
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+            w: 0.0,
+        }
+    }
+
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let point = Tuple { x: 1.0, y: 2.0, z: 3.0, w: 1.0 };
+    /// assert!(point.is_point());
+    /// ```
+    pub fn is_point(&self) -> bool {
         self.w == 1.0
     }
 
-    pub(crate) fn is_vector(&self) -> bool {
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple { x: 1.0, y: 2.0, z: 3.0, w: 0.0 };
+    /// assert!(vector.is_vector());
+    /// ```
+    pub fn is_vector(&self) -> bool {
         !self.is_point()
     }
 
-    pub(crate) fn magnitude(&self) -> f64 {
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple::Vector(1.0, 2.0, 3.0);
+    /// assert_eq!(vector.magnitude(), 3.7416573867739413);
+    /// ```
+    pub fn magnitude(&self) -> f64 {
         assert_eq!(self.w, 0.0); // magnitude only exists for vectors
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
 
-    pub(crate) fn as_normalized_vector(&self) -> Self {
-        let m = self.magnitude();
-
-        Self {
-            x: self.x / m,
-            y: self.y / m,
-            z: self.z / m,
-            w: self.w / m,
-        }
-    }
-
-    pub(crate) fn normalize(&self) -> Self {
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple::Vector(1.0, 2.0, 3.0);
+    /// assert_eq!(vector.normalize(), Tuple::Vector(0.2672612419124244, 0.5345224838248488, 0.8017837257372732));
+    /// ```
+    pub fn normalize(&self) -> Self {
         let m = self.magnitude();
         Self {
             x: self.x / m,
@@ -59,58 +108,46 @@ impl Tuple {
         }
     }
 
-    pub(crate) fn dot(&self, other: &Self) -> f64 {
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple::Vector(1.0, 2.0, 3.0);
+    /// assert_eq!(vector.dot(&vector), 14.0);
+    /// ```
+    pub fn dot(&self, other: &Self) -> f64 {
         // assert_eq!(self.w, 0.0); // magnitude only exists for vectors
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
-    pub(crate) fn cross(&self, other: &Self) -> Tuple {
-        Vector::new(
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple::Vector(1.0, 2.0, 3.0);
+    /// let vector2 = Tuple::Vector(2.0, 3.0, 4.0);
+    /// assert_eq!(vector.cross(&vector2), Tuple::Vector(-1.0, 2.0, -1.0));
+    /// ```
+    pub fn cross(&self, other: &Self) -> Tuple {
+        Tuple::Vector(
             self.y * other.z - self.z * other.y,
             self.z * other.x - self.x * other.z,
             self.x * other.y - self.y * other.x,
         )
     }
 
-    pub(crate) fn to_vec(&self) -> Vec<f64> {
-        vec![self.x, self.y, self.z, self.w]
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let vector = Tuple::Vector(1.0, 2.0, 3.0);
+    /// assert_eq!(vector.to_arr(), [1.0, 2.0, 3.0, 0.0]);
+    /// ```
+    pub fn to_arr(self) -> [f64; 4] {
+        [self.x, self.y, self.z, self.w]
     }
 
-    pub(crate) fn translate(&mut self, x: f64, y: f64, z: f64) -> Self {
-        *self = Translation::new(x, y, z) * *self;
-        *self
-    }
-
-    pub(crate) fn translate_to_point(&mut self, p: Tuple) -> Self {
-        *self = Translation::new(p.x, p.y, p.z) * *self;
-        *self
-    }
-
-    pub(crate) fn scale(&mut self, x: f64, y: f64, z: f64) -> Self {
-        *self = Scaling::new(x, y, z) * *self;
-        *self
-    }
-
-    pub(crate) fn rotate_x(&mut self, x: f64) -> Self {
-        *self = Rotation::newX(x) * *self;
-        *self
-    }
-
-    pub(crate) fn rotate_y(&mut self, y: f64) -> Self {
-        *self = Rotation::newY(y) * *self;
-        *self
-    }
-
-    pub(crate) fn rotate_z(&mut self, z: f64) -> Self {
-        *self = Rotation::newZ(z) * *self;
-        *self
-    }
-
-    pub(crate) fn as_tuple(&self) -> (f64, f64, f64, f64) {
-        (self.x, self.y, self.z, self.w)
-    }
-
-    pub(crate) fn reflect(&self, normal: Tuple) -> Tuple {
+    /// ```
+    /// use raytracer_rust::tuple::Tuple;
+    /// let v = Tuple::Vector(1.0, -1.0, 0.0);
+    /// let n = Tuple::Vector(0.0, 1.0, 0.0);
+    /// assert_eq!(v.reflect(n), Tuple::Vector(1.0, 1.0, 0.0));
+    /// ```
+    pub fn reflect(&self, normal: Tuple) -> Tuple {
         *self - normal * 2.0 * self.dot(&normal)
     }
 }
@@ -197,7 +234,7 @@ impl PartialEq for Tuple {
                 return false;
             }
         }
-        if self.w != other.w {
+        if (self.w - other.w).abs() > EPSILON {
             return false;
         }
         true
@@ -215,30 +252,19 @@ impl From<Vec<f64>> for Tuple {
     }
 }
 
+impl From<[f64; 4]> for Tuple {
+    fn from(v: [f64; 4]) -> Self {
+        Self {
+            x: v[0],
+            y: v[1],
+            z: v[2],
+            w: v[3],
+        }
+    }
+}
+
 impl Display for Tuple {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} {} {}", self.x, self.y, self.z, self.w)
-    }
-}
-
-impl Point {
-    pub(crate) fn new<T: Into<f64>>(x: T, y: T, z: T) -> Tuple {
-        Tuple {
-            x: x.into(),
-            y: y.into(),
-            z: z.into(),
-            w: 1.0,
-        }
-    }
-}
-
-impl Vector {
-    pub(crate) fn new<T: Into<f64>>(x: T, y: T, z: T) -> Tuple {
-        Tuple {
-            x: x.into(),
-            y: y.into(),
-            z: z.into(),
-            w: 0.0,
-        }
     }
 }

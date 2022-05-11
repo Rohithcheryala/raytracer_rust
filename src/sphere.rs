@@ -1,64 +1,49 @@
-use super::Ray;
+use super::ray::Ray;
 use crate::{
-    color::Color,
+    intersections::{Intersection, Intersections},
+    material::{Material, Phong},
     matrix::Matrix,
-    point_light::PointLight,
-    tuple::{Point, Tuple},
+    tuple::Tuple,
 };
-use std::ops::Index;
 
-#[derive(Debug, Clone)]
-pub(crate) struct Sphere {
-    pub(crate) transform: Matrix,
-    pub(crate) material: Material,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Phong {
-    pub(crate) color: Color,
-    ambient: f32,
-    diffuse: f32,
-    specular: f32,
-    shininess: f32,
-}
-
-pub(crate) trait PhongLightning {
-    fn lightning(&self, light: PointLight, point: Tuple, eyev: Tuple, normalv: Tuple) -> Color;
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum Material {
-    Phong(Phong),
-}
-
-#[derive(Debug)]
-pub(crate) struct Intersections<'a> {
-    count: u8,
-    i1: Intersection<'a>,
-    i2: Intersection<'a>,
-}
-
-#[derive(Debug)]
-pub(crate) struct Intersection<'a> {
-    pub(crate) t: f64,
-    pub(crate) object: &'a Sphere,
+#[derive(Debug, Clone, Copy)]
+pub struct Sphere {
+    pub transform: Matrix<4>,
+    pub material: Material,
 }
 
 impl Sphere {
-    pub(crate) fn new() -> Self {
+    pub fn new(transform: Matrix<4>, material: Material) -> Self {
         Self {
-            transform: Matrix::Identity(),
-            material: Material::default(),
+            transform,
+            material,
         }
     }
 
-    pub(crate) fn set_transform(&mut self, t: Matrix) {
+    pub fn with_transform(mut self, t: Matrix<4>) -> Self {
         self.transform = t;
+        self
     }
 
-    pub(crate) fn intersect(&self, r: Ray) -> Intersections {
-        let r = r.transform(self.transform.inverse());
-        let sphere_to_ray = r.origin() - Point::new(0.0, 0.0, 0.0);
+    pub fn with_material(mut self, m: Material) -> Self {
+        self.material = m;
+        self
+    }
+
+    /// ```
+    /// use raytracer_rust::sphere::Sphere;
+    /// use raytracer_rust::tuple::Tuple;
+    /// use raytracer_rust::ray::Ray;
+    /// let ray = Ray::new(Tuple::Point(0.0, 0.0, -5.0), Tuple::Vector(0.0, 0.0, 1.0));
+    /// let sphere = Sphere::default();
+    /// let xs = sphere.intersect(&ray);
+    /// assert_eq!(xs.count(), 2);
+    /// assert_eq!(xs[0].t, 4.0);
+    /// assert_eq!(xs[1].t, 6.0);
+    /// ```
+    pub fn intersect(&self, ray: &Ray) -> Intersections {
+        let r = ray.transform(self.transform.inverse());
+        let sphere_to_ray = r.origin() - Tuple::Point(0.0, 0.0, 0.0);
         // origin: (Ox, Oy,Oz)
         // let (ox, oy, oz, _ow) = r.origin.as_tuple();
         // direction: (dx,dy,dz)
@@ -76,23 +61,32 @@ impl Sphere {
         let disc = b * b - 4.0 * a * c;
         let d1 = (-b - disc.sqrt()) / (2.0 * a);
         let d2 = (-b + disc.sqrt()) / (2.0 * a);
-        Intersections {
-            count: 2,
-            i1: Intersection {
-                t: d1,
-                object: self,
-            },
-            i2: Intersection {
-                t: d2,
-                object: self,
-            },
+        let mut i = Intersections::default();
+        if !d1.is_nan() {
+            i.insert(Intersection::new(d1, *self, *ray));
         }
+        if !d2.is_nan() {
+            i.insert(Intersection::new(d2, *self, *ray));
+        }
+        i
     }
 
-    pub(crate) fn normal_at(&self, world_point: Tuple) -> Tuple {
+    /// ```
+    /// use raytracer_rust::sphere::Sphere;
+    /// use raytracer_rust::tuple::Tuple;
+    /// use raytracer_rust::matrix::Matrix;
+    /// let sphere = Sphere::default();
+    /// let n = sphere.normal_at(Tuple::Point(1.0, 0.0, 0.0));
+    /// assert_eq!(n, Tuple::Vector(1.0, 0.0, 0.0));
+    ///
+    /// let sphere = Sphere::default().with_transform(Matrix::Translation(0.0, 1.0, 0.0));
+    /// let n = sphere.normal_at(Tuple::Point(0.0, 1.70711, -0.70711));
+    /// assert_eq!(n, Tuple::Vector(0.0, 0.70711, -0.70711));
+    /// ```
+    pub fn normal_at(&self, world_point: Tuple) -> Tuple {
         let object_point = self.transform.inverse() * world_point;
-        let object_normal = object_point - Point::new(0.0, 0.0, 0.0);
-        let mut world_normal = self.transform.inverse() * object_normal;
+        let object_normal = object_point - Tuple::Point(0.0, 0.0, 0.0);
+        let mut world_normal = self.transform.inverse().transpose() * object_normal;
         world_normal.w = 0.0;
         world_normal.normalize()
     }
@@ -100,95 +94,9 @@ impl Sphere {
 
 impl Default for Sphere {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Default for Material {
-    fn default() -> Self {
-        Material::Phong(Phong {
-            color: Color::default(),
-            ambient: 0.1,
-            diffuse: 0.9,
-            specular: 0.9,
-            shininess: 200.0,
-        })
-    }
-}
-
-impl<'a> Index<usize> for Intersections<'a> {
-    type Output = Intersection<'a>;
-    fn index(&self, index: usize) -> &Self::Output {
-        match index {
-            0 => &self.i1,
-            1 => &self.i2,
-            _ => panic!("Index out of range."),
+        Self {
+            transform: Matrix::Identity(),
+            material: Material::Phong(Phong::default()),
         }
-    }
-}
-
-impl<'a> Intersections<'a> {
-    pub(crate) fn new(count: u8, i1: Intersection<'a>, i2: Intersection<'a>) -> Self {
-        Self { count, i1, i2 }
-    }
-
-    pub(crate) fn hit(&self) -> Option<&Intersection> {
-        if self.i1.t.is_sign_positive() && self.i2.t.is_sign_positive() {
-            if self.i2.t > self.i1.t {
-                Some(&self.i1)
-            } else {
-                Some(&self.i2)
-            }
-        } else if self.i1.t.is_sign_negative() && self.i2.t.is_sign_negative() {
-            None
-        } else if self.i1.t.is_sign_negative() {
-            Some(&self.i2)
-        } else if self.i2.t.is_sign_negative() {
-            Some(&self.i1)
-        } else {
-            None
-        }
-    }
-}
-
-impl Material {
-    pub(crate) fn lighting(
-        &self,
-        light: PointLight,
-        point: Tuple,
-        eyev: Tuple,
-        normalv: Tuple,
-    ) -> Color {
-        match self {
-            Material::Phong(phong) => phong.lightning(light, point, eyev, normalv),
-        }
-    }
-}
-
-impl PhongLightning for Phong {
-    fn lightning(&self, light: PointLight, point: Tuple, eyev: Tuple, normalv: Tuple) -> Color {
-        let effective_color = self.color * light.intensity;
-        let ambient = effective_color * self.ambient;
-
-        let lightv = (light.position - point).normalize();
-        let light_dot_normal = lightv.dot(&normalv);
-        let diffuse;
-        let specular;
-
-        if light_dot_normal < 0f64 {
-            diffuse = Color::black();
-            specular = Color::black();
-        } else {
-            diffuse = effective_color * self.diffuse * light_dot_normal;
-            let reflectv = (-lightv).reflect(normalv);
-            let reflect_dot_eye = reflectv.dot(&eyev);
-            if reflect_dot_eye <= 0f64 {
-                specular = Color::black();
-            } else {
-                let factor = reflect_dot_eye.powf(self.shininess as f64);
-                specular = light.intensity * self.specular * factor;
-            }
-        }
-        ambient + diffuse + specular
     }
 }
