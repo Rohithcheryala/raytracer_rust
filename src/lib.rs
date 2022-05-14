@@ -81,7 +81,10 @@ pub fn chapter6_challenge() {
                 let intersection_point = ray.position(hit.t);
                 let normal = hit.object.normal_at(intersection_point);
                 let eye = -(ray.direction());
-                let color = hit.object.material.lighting(light, point, eye, normal);
+                let color = hit
+                    .object
+                    .material
+                    .lighting(light, point, eye, normal, false);
 
                 canvas.set_color_at_pixel(i, j, color);
             }
@@ -126,7 +129,10 @@ pub fn chapter6_challenge_parallel() {
                 let intersection_point = ray.position(hit.t);
                 let normal = hit.object.normal_at(intersection_point);
                 let eye = -(ray.direction());
-                let color = hit.object.material.lighting(light, point, eye, normal);
+                let color = hit
+                    .object
+                    .material
+                    .lighting(light, point, eye, normal, false);
 
                 // Introduced lock in another scope to unlock the variable just after completion of this command
                 // and not wait until the whole block to complete execution

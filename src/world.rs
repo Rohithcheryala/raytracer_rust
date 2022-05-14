@@ -1,6 +1,7 @@
 use crate::{
     color::Color,
     computed_intersection::ComputedIntersection,
+    consts::EPSILON,
     intersections::Intersections,
     material::{Material, Phong},
     matrix::Matrix,
@@ -70,11 +71,17 @@ impl World {
     /// assert_eq!(c, Color::new(0.90498, 0.90498, 0.90498));
     /// ```
     pub fn shade_hit(&self, comps: ComputedIntersection) -> Color {
+        assert_eq!(self.point_lights.len(), 1, "please read FIXME in shade_hit");
+        let over_point = comps.point + comps.normalv * EPSILON;
         comps.object.material.lighting(
+            // FIXME: why point_lights[0] is hard coded
+            // maybe, iterate through all point lights and add the color of each light
+            // adding might be a problem, if its sum > 1 for a color component
             self.point_lights[0].clone(),
             comps.point,
             comps.eyev,
             comps.normalv,
+            self.is_shadowed(over_point),
         )
     }
 
@@ -97,6 +104,18 @@ impl World {
         } else {
             Color::black()
         }
+    }
+
+    // FIXME: using "any" is not well understood.
+    pub fn is_shadowed(&self, point: Tuple) -> bool {
+        self.point_lights.iter().any(|light| {
+            let v = light.position - point;
+            let distance = v.magnitude();
+            let direction = v.normalize();
+            let r = Ray::new(point, direction);
+            let intersections = self.intersect(r);
+            intersections.hit().map(|i| i.t < distance).unwrap_or(false)
+        })
     }
 
     pub fn default_from_book() -> Self {
@@ -150,5 +169,14 @@ mod tests {
         let r = Ray::new(Tuple::Point(0.0, 0.0, 0.75), Tuple::Vector(0.0, 0.0, -1.0));
         let c = w.color_at(r);
         assert_eq!(c, expected);
+    }
+
+    #[test]
+    fn is_shadowed_test() {
+        let w = World::default_from_book();
+        assert_eq!(w.is_shadowed(Tuple::Point(0.0, 10.0, 0.0)), false);
+        assert_eq!(w.is_shadowed(Tuple::Point(10.0, -10.0, 10.0)), true);
+        assert_eq!(w.is_shadowed(Tuple::Point(-20.0, 20.0, -20.0)), false);
+        assert_eq!(w.is_shadowed(Tuple::Point(-2.0, 2.0, -2.0)), false);
     }
 }

@@ -15,13 +15,27 @@ pub struct Phong {
 }
 
 pub trait PhongLightning {
-    fn lightning(&self, light: PointLight, point: Tuple, eyev: Tuple, normalv: Tuple) -> Color;
+    fn lightning(
+        &self,
+        light: PointLight,
+        point: Tuple,
+        eyev: Tuple,
+        normalv: Tuple,
+        in_shadow: bool,
+    ) -> Color;
 }
 
 impl Material {
-    pub fn lighting(&self, light: PointLight, point: Tuple, eyev: Tuple, normalv: Tuple) -> Color {
+    pub fn lighting(
+        &self,
+        light: PointLight,
+        point: Tuple,
+        eyev: Tuple,
+        normalv: Tuple,
+        in_shadow: bool,
+    ) -> Color {
         match self {
-            Material::Phong(phong) => phong.lightning(light, point, eyev, normalv),
+            Material::Phong(phong) => phong.lightning(light, point, eyev, normalv, in_shadow),
         }
     }
 }
@@ -66,7 +80,14 @@ impl Default for Phong {
 }
 
 impl PhongLightning for Phong {
-    fn lightning(&self, light: PointLight, point: Tuple, eyev: Tuple, normalv: Tuple) -> Color {
+    fn lightning(
+        &self,
+        light: PointLight,
+        point: Tuple,
+        eyev: Tuple,
+        normalv: Tuple,
+        in_shadow: bool,
+    ) -> Color {
         let effective_color = self.color * light.intensity;
         let ambient = effective_color * self.ambient;
 
@@ -88,6 +109,12 @@ impl PhongLightning for Phong {
                 specular = light.intensity * self.specular * factor;
             }
         }
-        ambient + diffuse + specular
+        // HACK: why use branching here
+        // ambient + (diffuse + specular) * in_shadow as u8;
+        if in_shadow {
+            ambient
+        } else {
+            ambient + diffuse + specular
+        }
     }
 }
