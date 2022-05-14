@@ -214,7 +214,7 @@ fn chapter7_setup() -> (World, Camera) {
     world.add_sphere(right);
     world.add_sphere(left);
 
-    let mut camera = Camera::new(1000, 600, consts::PI_BY_3);
+    let mut camera = Camera::new(1200, 600, consts::PI_BY_3);
     camera.transform = Matrix::view_transform(
         Tuple::Point(0.0, 1.5, -5.0),
         Tuple::Point(0, 1, 0),
