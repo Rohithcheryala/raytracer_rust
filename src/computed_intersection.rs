@@ -1,18 +1,18 @@
-use crate::{intersections::Intersection, sphere::Sphere, tuple::Tuple};
+use crate::{body::Body, intersections::Intersection, tuple::Tuple};
 pub struct ComputedIntersection {
     pub inside: bool,
     pub point: Tuple,
-    pub object: Sphere,
+    pub body: Body,
     pub eyev: Tuple,
     pub normalv: Tuple,
 }
 
 impl ComputedIntersection {
-    pub fn new(inside: bool, point: Tuple, object: Sphere, eyev: Tuple, normalv: Tuple) -> Self {
+    pub fn new(inside: bool, point: Tuple, body: Body, eyev: Tuple, normalv: Tuple) -> Self {
         Self {
             inside,
             point,
-            object,
+            body,
             eyev,
             normalv,
         }

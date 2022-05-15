@@ -118,3 +118,9 @@ impl PhongLightning for Phong {
         }
     }
 }
+
+impl From<Phong> for Material {
+    fn from(phong: Phong) -> Self {
+        Material::Phong(phong)
+    }
+}

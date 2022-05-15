@@ -1,4 +1,5 @@
 use crate::{
+    body::Body,
     color::Color,
     computed_intersection::ComputedIntersection,
     consts::EPSILON,
@@ -14,14 +15,14 @@ use crate::{
 #[derive(Default, Debug, Clone)]
 pub struct World {
     pub point_lights: Vec<PointLight>,
-    pub spheres: Vec<Sphere>,
+    pub bodies: Vec<Body>,
 }
 
 impl World {
-    pub fn new() -> Self {
+    pub fn new(point_lights: Vec<PointLight>, bodies: Vec<Body>) -> Self {
         Self {
-            point_lights: Vec::new(),
-            spheres: Vec::new(),
+            point_lights,
+            bodies,
         }
     }
 
@@ -29,13 +30,13 @@ impl World {
         self.point_lights.push(l);
     }
 
-    pub fn add_sphere(&mut self, s: Sphere) {
-        self.spheres.push(s);
+    pub fn add_body(&mut self, s: Body) {
+        self.bodies.push(s);
     }
 
     pub fn intersect(&self, r: Ray) -> Intersections {
         let mut xs = Intersections::default();
-        self.spheres.iter().for_each(|s| {
+        self.bodies.iter().for_each(|s| {
             let x = s.intersect(&r);
             xs.extend(x);
         });
@@ -56,16 +57,16 @@ impl World {
     /// let mut world = World::default_from_book();
     /// let ray = Ray::new(Tuple::Point(0, 0, -5), Tuple::Vector(0, 0, 1));
     ///
-    /// let shape = world.spheres[0].clone();
-    /// let i = Intersection::new(4.0, shape, ray);
+    /// let shape = world.bodies[0].clone();
+    /// let i = Intersection::new(4.0, shape.into(), ray);
     /// let comps = i.to_computed();
     /// let c = world.shade_hit(comps);
     /// assert_eq!(c, Color::new(0.38066, 0.47583, 0.2855));
     ///
     /// world.point_lights = vec![PointLight::new(Tuple::Point(0.0, 0.25, 0.0), Color::new(1.0, 1.0, 1.0))];
     /// let ray = Ray::new(Tuple::Point(0, 0, 0), Tuple::Vector(0, 0, 1));
-    /// let shape = world.spheres[1].clone();
-    /// let i = Intersection::new(0.5, shape, ray);
+    /// let shape = world.bodies[1].clone();
+    /// let i = Intersection::new(0.5, shape.into(), ray);
     /// let comps = i.to_computed();
     /// let c = world.shade_hit(comps);
     /// assert_eq!(c, Color::new(0.90498, 0.90498, 0.90498));
@@ -73,7 +74,7 @@ impl World {
     pub fn shade_hit(&self, comps: ComputedIntersection) -> Color {
         assert_eq!(self.point_lights.len(), 1, "please read FIXME in shade_hit");
         let over_point = comps.point + comps.normalv * EPSILON;
-        comps.object.material.lighting(
+        comps.body.material().lighting(
             // FIXME: why point_lights[0] is hard coded
             // maybe, iterate through all point lights and add the color of each light
             // adding might be a problem, if its sum > 1 for a color component
@@ -124,14 +125,18 @@ impl World {
                 Tuple::Point(-10.0, 10.0, -10.0),
                 Color::new(1.0, 1.0, 1.0),
             )],
-            spheres: vec![
-                Sphere::default().with_material(Material::Phong(Phong {
-                    color: Color::new(0.8, 1.0, 0.6),
-                    diffuse: 0.7,
-                    specular: 0.2,
-                    ..Default::default()
-                })),
-                Sphere::default().with_transform(Matrix::Scaling(0.5, 0.5, 0.5)),
+            bodies: vec![
+                Sphere::default()
+                    .with_material(Material::Phong(Phong {
+                        color: Color::new(0.8, 1.0, 0.6),
+                        diffuse: 0.7,
+                        specular: 0.2,
+                        ..Default::default()
+                    }))
+                    .into(),
+                Sphere::default()
+                    .with_transform(Matrix::Scaling(0.5, 0.5, 0.5))
+                    .into(),
             ],
         }
     }
@@ -156,11 +161,11 @@ mod tests {
     #[test]
     fn test_intersect_world_behind_ray() {
         let mut w = World::default_from_book();
-        match &mut w.spheres[0].material {
+        match w.bodies[0].material_mut() {
             Material::Phong(p) => p.ambient = 1.0,
         }
         let expected;
-        match &mut w.spheres[1].material {
+        match w.bodies[1].material_mut() {
             Material::Phong(p) => {
                 p.ambient = 1.0;
                 expected = p.color;

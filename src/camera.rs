@@ -83,6 +83,11 @@ impl Camera {
         });
         canvas.into_inner().unwrap()
     }
+
+    pub fn look_at_from_position(mut self, from: Tuple, to: Tuple, up: Tuple) -> Camera {
+        self.transform = Matrix::view_transform(from, to, up);
+        self
+    }
 }
 
 #[cfg(test)]
@@ -93,8 +98,8 @@ mod tests {
     fn camera_ray_for_pixel() {
         let c = Camera::new(201, 101, std::f64::consts::PI / 2.0);
         let ray = c.ray_for_pixel(0, 0);
-        assert_eq!(ray.origin(), Tuple::Point(0.0, 0.0, 0.0));
-        assert_eq!(ray.direction(), Tuple::Vector(0.66519, 0.33259, -0.66851));
+        assert_eq!(ray.origin, Tuple::Point(0.0, 0.0, 0.0));
+        assert_eq!(ray.direction, Tuple::Vector(0.66519, 0.33259, -0.66851));
     }
 
     #[test]

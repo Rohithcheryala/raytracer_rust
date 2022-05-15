@@ -12,14 +12,6 @@ impl Ray {
         Self { origin, direction }
     }
 
-    pub fn origin(&self) -> Tuple {
-        self.origin
-    }
-
-    pub fn direction(&self) -> Tuple {
-        self.direction
-    }
-
     /// ```
     /// use raytracer_rust::ray::Ray;
     /// use raytracer_rust::tuple::Tuple;
@@ -46,8 +38,4 @@ impl Ray {
             direction: t * self.direction,
         }
     }
-
-    // pub fn as_tuple(&self) -> (Tuple, Tuple) {
-    //     (self.origin, self.direction)
-    // }
 }

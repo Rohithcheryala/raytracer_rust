@@ -1,10 +1,10 @@
-use crate::{computed_intersection::ComputedIntersection, ray::Ray, sphere::Sphere};
+use crate::{body::Body, computed_intersection::ComputedIntersection, ray::Ray};
 use std::ops::Index;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Intersection {
     pub t: f64,
-    pub object: Sphere,
+    pub body: Body,
     pub ray: Ray,
 }
 
@@ -15,19 +15,19 @@ pub struct Intersections {
 }
 
 impl Intersection {
-    pub fn new(t: f64, object: Sphere, ray: Ray) -> Self {
-        Self { t, object, ray }
+    pub fn new(t: f64, body: Body, ray: Ray) -> Self {
+        Self { t, body, ray }
     }
 
     pub fn to_computed(self) -> ComputedIntersection {
         let position = self.ray.position(self.t);
-        let mut normalv = self.object.normal_at(position);
+        let mut normalv = self.body.normal_at(position);
         let eyev = -self.ray.direction;
         let inside = normalv.dot(&eyev) < 0.0;
         if inside {
             normalv = -normalv;
         }
-        ComputedIntersection::new(inside, position, self.object, eyev, normalv)
+        ComputedIntersection::new(inside, position, self.body, eyev, normalv)
     }
 }
 
@@ -63,8 +63,8 @@ impl Intersections {
     /// use raytracer_rust::tuple::Tuple;
     /// use raytracer_rust::ray::Ray;
     /// use raytracer_rust::intersections::{Intersection, Intersections};
-    /// let i1 = Intersection::new(1.0, Sphere::default(), Ray::new(Tuple::Point(0.0, 0.0, -5.0), Tuple::Vector(0.0, 0.0, 1.0)));
-    /// let i2 = Intersection::new(2.0, Sphere::default(), Ray::new(Tuple::Point(0.0, 0.0, -5.0), Tuple::Vector(0.0, 0.0, 1.0)));
+    /// let i1 = Intersection::new(1.0, Sphere::default().into(), Ray::new(Tuple::Point(0.0, 0.0, -5.0), Tuple::Vector(0.0, 0.0, 1.0)));
+    /// let i2 = Intersection::new(2.0, Sphere::default().into(), Ray::new(Tuple::Point(0.0, 0.0, -5.0), Tuple::Vector(0.0, 0.0, 1.0)));
     /// let xs = Intersections::new(vec![i1, i2]);
     /// assert_eq!(xs.hit(), Some(&i1));
     /// ```

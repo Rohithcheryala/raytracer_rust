@@ -1,9 +1,12 @@
 use crate::{
+    body::{Body, Intersectable},
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
+    consts::PI_BY_3,
     material::{Material, Phong},
     matrix::Matrix,
+    plane::Plane,
     point_light::PointLight,
     ray::Ray,
     sphere::Sphere,
@@ -13,6 +16,7 @@ use crate::{
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{sync::Mutex, time::Instant};
 
+pub mod body;
 pub mod camera;
 pub mod canvas;
 pub mod color;
@@ -20,6 +24,7 @@ pub mod computed_intersection;
 pub mod intersections;
 pub mod material;
 pub mod matrix;
+pub mod plane;
 pub mod point_light;
 pub mod ray;
 pub mod sphere;
@@ -57,8 +62,8 @@ pub fn chapter6_challenge() {
     let width: usize = 800;
     let mut canvas = Canvas::new(width, width);
     let mut s = Sphere::default();
-    match s.material {
-        Material::Phong(ref mut p) => p.color = Color::new(1.0, 0.2, 1.0),
+    match s.material_mut() {
+        Material::Phong(p) => p.color = Color::new(1.0, 0.2, 1.0),
     }
     let cw: usize = width;
     let size = 10f64;
@@ -79,11 +84,11 @@ pub fn chapter6_challenge() {
 
             if let Some(hit) = xs.hit() {
                 let intersection_point = ray.position(hit.t);
-                let normal = hit.object.normal_at(intersection_point);
-                let eye = -(ray.direction());
+                let normal = hit.body.normal_at(intersection_point);
+                let eye = -(ray.direction);
                 let color = hit
-                    .object
-                    .material
+                    .body
+                    .material()
                     .lighting(light, point, eye, normal, false);
 
                 canvas.set_color_at_pixel(i, j, color);
@@ -105,8 +110,8 @@ pub fn chapter6_challenge_parallel() {
     let width: usize = 800;
     let world = Mutex::new(Canvas::new(width, width));
     let mut s = Sphere::default();
-    match s.material {
-        Material::Phong(ref mut p) => p.color = Color::new(1.0, 0.2, 1.0),
+    match s.material_mut() {
+        Material::Phong(p) => p.color = Color::new(1.0, 0.2, 1.0),
     }
     let cw: usize = width;
     let size = 10f64;
@@ -127,11 +132,11 @@ pub fn chapter6_challenge_parallel() {
 
             if let Some(hit) = xs.hit() {
                 let intersection_point = ray.position(hit.t);
-                let normal = hit.object.normal_at(intersection_point);
-                let eye = -(ray.direction());
+                let normal = hit.body.normal_at(intersection_point);
+                let eye = -(ray.direction);
                 let color = hit
-                    .object
-                    .material
+                    .body
+                    .material()
                     .lighting(light, point, eye, normal, false);
 
                 // Introduced lock in another scope to unlock the variable just after completion of this command
@@ -170,7 +175,7 @@ fn chapter7_setup() -> (World, Camera) {
                 * Matrix::rotation_X(consts::PI_BY_2)
                 * Matrix::Scaling(10.0, 0.01, 10.0),
         )
-        .with_material(floor.material);
+        .with_material(*floor.material());
 
     let right_wall = Sphere::default()
         .with_transform(
@@ -179,7 +184,7 @@ fn chapter7_setup() -> (World, Camera) {
                 * Matrix::rotation_X(consts::PI_BY_2)
                 * Matrix::Scaling(10.0, 0.01, 10.0),
         )
-        .with_material(floor.material);
+        .with_material(*floor.material());
 
     let middle = Sphere::default()
         .with_transform(Matrix::Translation(-0.5, 1.0, 0.5))
@@ -213,15 +218,14 @@ fn chapter7_setup() -> (World, Camera) {
         Tuple::Point(-10, 10, -10),
         Color::new(1.0, 1.0, 1.0),
     ));
-    world.add_sphere(floor);
-    world.add_sphere(left_wall);
-    world.add_sphere(right_wall);
-    world.add_sphere(middle);
-    world.add_sphere(right);
-    world.add_sphere(left);
+    world.add_body(floor.into());
+    world.add_body(left_wall.into());
+    world.add_body(right_wall.into());
+    world.add_body(middle.into());
+    world.add_body(right.into());
+    world.add_body(left.into());
 
-    let mut camera = Camera::new(1200, 600, consts::PI_BY_3);
-    camera.transform = Matrix::view_transform(
+    let camera = Camera::new(1200, 600, PI_BY_3).look_at_from_position(
         Tuple::Point(0.0, 1.5, -5.0),
         Tuple::Point(0, 1, 0),
         Tuple::Vector(0, 1, 0),
@@ -249,6 +253,65 @@ pub fn chapter7_challenge_parallel() {
     camera
         .render_par(&world)
         .save_as_ppm("challenges/ch7.ppm")
+        .unwrap();
+    let elapsed = now.elapsed();
+    println!("time taken: {} ms", elapsed.as_millis());
+}
+
+pub fn chapter9_challenge() {
+    println!("Chapter 9 challenge with multi-threading ...");
+    let now = Instant::now();
+
+    let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+
+    // Floor
+    let floor_material = Phong::default()
+        .with_color(Color::new(0.5, 0.45, 0.45))
+        .with_specular(0.0);
+
+    let floor = Plane::default().with_material(Material::from(floor_material));
+
+    // Spheres
+    let left_sphere = Sphere::new(
+        Matrix::Translation(-1.5, 0.33, -0.75) * Matrix::Scaling(0.33, 0.33, 0.33),
+        Material::Phong(Phong::default().with_color(Color::new(0.78, 0.28, 0.96))),
+    );
+
+    let middle_sphere = Sphere::new(
+        Matrix::Translation(-0.5, 1.0, 0.5),
+        Material::Phong(
+            Phong::default()
+                .with_color(Color::new(1.0, 0.49, 0.0))
+                .with_diffuse(0.7)
+                .with_specular(0.1)
+                .with_shininess(50.0),
+        ),
+    );
+
+    let right_sphere = Sphere::new(
+        Matrix::Translation(1.5, 0.5, -0.5) * Matrix::Scaling(0.5, 0.5, 0.5),
+        Material::Phong(Phong::default().with_color(Color::new(0.51, 0.75, 0.06))),
+    );
+
+    let world = World::new(
+        vec![light],
+        vec![
+            Body::from(floor),
+            Body::from(left_sphere),
+            Body::from(middle_sphere),
+            Body::from(right_sphere),
+        ],
+    );
+
+    let camera = Camera::new(800, 800, PI_BY_3).look_at_from_position(
+        Tuple::Point(0.0, 2.3, -8.0),
+        Tuple::Point(0.0, 1.0, 0.0),
+        Tuple::Vector(0.0, 1.0, 0.0),
+    );
+
+    camera
+        .render_par(&world)
+        .save_as_ppm("challenges/ch9.ppm")
         .unwrap();
     let elapsed = now.elapsed();
     println!("time taken: {} ms", elapsed.as_millis());
