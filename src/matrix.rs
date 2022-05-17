@@ -2,7 +2,6 @@ use crate::{consts::EPSILON, tuple::Tuple, RoundToNDecimalPlaces};
 use std::{
     fmt::{Debug, Display, Formatter},
     ops::{Div, Index, IndexMut, Mul},
-    slice::{Iter, IterMut},
 };
 
 #[derive(Clone, Debug, Copy)]
@@ -19,12 +18,12 @@ impl<const N: usize> Matrix<N> {
     }
 
     #[inline]
-    pub fn iter(&self) -> Iter<[f64; N]> {
+    pub fn iter(&self) -> std::slice::Iter<[f64; N]> {
         self.inner.iter()
     }
 
     #[inline]
-    pub fn iter_mut(&mut self) -> IterMut<[f64; N]> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<[f64; N]> {
         self.inner.iter_mut()
     }
 

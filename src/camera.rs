@@ -1,6 +1,8 @@
 use std::sync::Mutex;
 
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 
 use crate::{canvas::Canvas, matrix::Matrix, ray::Ray, tuple::Tuple, world::World};
 
@@ -82,6 +84,18 @@ impl Camera {
             })
         });
         canvas.into_inner().unwrap()
+    }
+
+    pub fn render_par_impling_rayon_traits(&self, world: &World) -> Canvas {
+        let mut canvas = Canvas::new(self.hsize, self.vsize);
+        canvas.par_iter_mut().enumerate().for_each(|(y, row)| {
+            row.par_iter_mut().enumerate().for_each(|(x, pixel)| {
+                let ray = self.ray_for_pixel(x, y);
+                let color = world.color_at(ray);
+                *pixel = color;
+            });
+        });
+        canvas
     }
 
     pub fn look_at_from_position(mut self, from: Tuple, to: Tuple, up: Tuple) -> Camera {
