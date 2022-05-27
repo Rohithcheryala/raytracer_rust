@@ -1,4 +1,4 @@
-use crate::{body::Body, computed_intersection::ComputedIntersection, ray::Ray};
+use crate::{body::Body, computed_intersection::ComputedIntersection, consts::EPSILON, ray::Ray};
 use std::ops::Index;
 
 #[derive(Debug, Clone, Copy)]
@@ -27,7 +27,8 @@ impl Intersection {
         if inside {
             normalv = -normalv;
         }
-        ComputedIntersection::new(inside, position, self.body, eyev, normalv)
+        let over_point = position + normalv * EPSILON;
+        ComputedIntersection::new(inside, position, over_point, self.body, eyev, normalv)
     }
 }
 

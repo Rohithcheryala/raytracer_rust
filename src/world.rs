@@ -2,10 +2,10 @@ use crate::{
     body::Body,
     color::Color,
     computed_intersection::ComputedIntersection,
-    consts::EPSILON,
     intersections::Intersections,
-    material::{Material, Phong},
+    material::{Material, Phong, PhongLighting},
     matrix::Matrix,
+    pattern::{Flat, Pattern},
     point_light::PointLight,
     ray::Ray,
     sphere::Sphere,
@@ -73,16 +73,16 @@ impl World {
     /// ```
     pub fn shade_hit(&self, comps: ComputedIntersection) -> Color {
         assert_eq!(self.point_lights.len(), 1, "please read FIXME in shade_hit");
-        let over_point = comps.point + comps.normalv * EPSILON;
         comps.body.material().lighting(
             // FIXME: why point_lights[0] is hard coded
             // maybe, iterate through all point lights and add the color of each light
             // adding might be a problem, if its sum > 1 for a color component
+            &comps.body,
             self.point_lights[0].clone(),
             comps.point,
             comps.eyev,
             comps.normalv,
-            self.is_shadowed(over_point),
+            self.is_shadowed(comps.over_point),
         )
     }
 
@@ -103,7 +103,7 @@ impl World {
             let cs = (*intersection).to_computed();
             self.shade_hit(cs)
         } else {
-            Color::black()
+            Color::BLACK()
         }
     }
 
@@ -128,7 +128,7 @@ impl World {
             bodies: vec![
                 Sphere::default()
                     .with_material(Material::Phong(Phong {
-                        color: Color::new(0.8, 1.0, 0.6),
+                        pattern: Pattern::Flat(Flat::new(Color::new(0.8, 1.0, 0.6))),
                         diffuse: 0.7,
                         specular: 0.2,
                         ..Default::default()
@@ -145,6 +145,7 @@ impl World {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pattern::Stencil;
 
     #[test]
     fn test_intersect_world_with_ray() {
@@ -168,7 +169,7 @@ mod tests {
         match w.bodies[1].material_mut() {
             Material::Phong(p) => {
                 p.ambient = 1.0;
-                expected = p.color;
+                expected = p.color_at_in_pattern_space(Tuple::Point(0, 0, 0));
             }
         }
         let r = Ray::new(Tuple::Point(0.0, 0.0, 0.75), Tuple::Vector(0.0, 0.0, -1.0));

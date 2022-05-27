@@ -2,16 +2,25 @@ use crate::{body::Body, intersections::Intersection, tuple::Tuple};
 pub struct ComputedIntersection {
     pub inside: bool,
     pub point: Tuple,
+    pub over_point: Tuple,
     pub body: Body,
     pub eyev: Tuple,
     pub normalv: Tuple,
 }
 
 impl ComputedIntersection {
-    pub fn new(inside: bool, point: Tuple, body: Body, eyev: Tuple, normalv: Tuple) -> Self {
+    pub fn new(
+        inside: bool,
+        point: Tuple,
+        over_point: Tuple,
+        body: Body,
+        eyev: Tuple,
+        normalv: Tuple,
+    ) -> Self {
         Self {
             inside,
             point,
+            over_point,
             body,
             eyev,
             normalv,

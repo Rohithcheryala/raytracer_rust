@@ -1,10 +1,8 @@
-use std::sync::Mutex;
-
+use crate::{canvas::Canvas, matrix::Matrix, ray::Ray, tuple::Tuple, world::World};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
-
-use crate::{canvas::Canvas, matrix::Matrix, ray::Ray, tuple::Tuple, world::World};
+use std::sync::Mutex;
 
 pub struct Camera {
     pub transform: Matrix<4>,
@@ -98,7 +96,7 @@ impl Camera {
         canvas
     }
 
-    pub fn look_at_from_position(mut self, from: Tuple, to: Tuple, up: Tuple) -> Camera {
+    pub fn look_at_from_position(mut self, from: Tuple, to: Tuple, up: Tuple) -> Self {
         self.transform = Matrix::view_transform(from, to, up);
         self
     }

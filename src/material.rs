@@ -1,4 +1,11 @@
-use crate::{color::Color, point_light::PointLight, tuple::Tuple};
+use crate::{
+    body::Body,
+    color::Color,
+    matrix::Matrix,
+    pattern::{Pattern, Stencil},
+    point_light::PointLight,
+    tuple::Tuple,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Material {
@@ -7,44 +14,45 @@ pub enum Material {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Phong {
-    pub color: Color,
+    // pub color: Color,
+    pub pattern: Pattern,
     pub ambient: f32,
     pub diffuse: f32,
     pub specular: f32,
     pub shininess: f32,
 }
 
-pub trait PhongLightning {
-    fn lightning(
+pub trait PhongLighting {
+    fn lighting(
         &self,
+        body: &Body,
         light: PointLight,
-        point: Tuple,
+        position: Tuple,
         eyev: Tuple,
         normalv: Tuple,
         in_shadow: bool,
     ) -> Color;
 }
 
-impl Material {
-    pub fn lighting(
+impl PhongLighting for Material {
+    fn lighting(
         &self,
+        body: &Body,
         light: PointLight,
-        point: Tuple,
+        position: Tuple,
         eyev: Tuple,
         normalv: Tuple,
         in_shadow: bool,
     ) -> Color {
         match self {
-            Material::Phong(phong) => phong.lightning(light, point, eyev, normalv, in_shadow),
+            Material::Phong(phong) => {
+                phong.lighting(body, light, position, eyev, normalv, in_shadow)
+            }
         }
     }
 }
 
 impl Phong {
-    pub fn with_color(mut self, c: Color) -> Self {
-        self.color = c;
-        self
-    }
 
     pub fn with_ambient(mut self, c: f32) -> Self {
         self.ambient = c;
@@ -70,7 +78,7 @@ impl Phong {
 impl Default for Phong {
     fn default() -> Self {
         Self {
-            color: Color::default(),
+            pattern: Pattern::default(),
             ambient: 0.1,
             diffuse: 0.9,
             specular: 0.9,
@@ -79,31 +87,32 @@ impl Default for Phong {
     }
 }
 
-impl PhongLightning for Phong {
-    fn lightning(
+impl PhongLighting for Phong {
+    fn lighting(
         &self,
+        body: &Body,
         light: PointLight,
-        point: Tuple,
+        position: Tuple,
         eyev: Tuple,
         normalv: Tuple,
         in_shadow: bool,
     ) -> Color {
-        let effective_color = self.color * light.intensity;
+        let effective_color = self.color_at(body, position) * light.intensity;
         let ambient = effective_color * self.ambient;
 
-        let lightv = (light.position - point).normalize();
+        let lightv = (light.position - position).normalize();
         let light_dot_normal = lightv.dot(&normalv);
         let (diffuse, specular);
 
         if light_dot_normal < 0.0 {
-            diffuse = Color::black();
-            specular = Color::black();
+            diffuse = Color::BLACK();
+            specular = Color::BLACK();
         } else {
             diffuse = effective_color * self.diffuse * light_dot_normal;
             let reflectv = (-lightv).reflect(normalv);
             let reflect_dot_eye = reflectv.dot(&eyev);
             if reflect_dot_eye <= 0f64 {
-                specular = Color::black();
+                specular = Color::BLACK();
             } else {
                 let factor = reflect_dot_eye.powf(self.shininess as f64);
                 specular = light.intensity * self.specular * factor;
@@ -116,6 +125,16 @@ impl PhongLightning for Phong {
         } else {
             ambient + diffuse + specular
         }
+    }
+}
+
+impl Stencil for Phong {
+    fn color_at_in_pattern_space(&self, position: Tuple) -> Color {
+        self.pattern.color_at_in_pattern_space(position)
+    }
+
+    fn transform(&self) -> Matrix<4> {
+        self.pattern.transform()
     }
 }
 

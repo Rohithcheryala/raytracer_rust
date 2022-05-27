@@ -35,10 +35,14 @@ pub struct Canvas {
 
 impl Canvas {
     pub fn new(width: usize, height: usize) -> Self {
+        // FIXME: Why to initialize frame with black color when it is never read.
+        // Links:
+        // ?https://stackoverflow.com/questions/28208037/how-to-make-a-vector-of-received-size
+        // ?https://mitaa.github.io/rust/doc/std/mem/fn.uninitialized.html
         Self {
             width,
             height,
-            frame: vec![vec![Color::black(); width]; height],
+            frame: vec![vec![Color::BLACK(); width]; height],
         }
     }
 
@@ -52,6 +56,16 @@ impl Canvas {
 
     pub fn iter(&self) -> std::slice::Iter<Vec<Color>> {
         self.frame.iter()
+    }
+
+    // For debugging purposes.
+    pub fn color_center(mut self, color: Color) -> Self {
+        for y in (self.height / 2 - 5)..(self.height / 2 + 6) {
+            for x in (self.width / 2 - 5)..(self.width / 2 + 6) {
+                self.set_color_at_pixel(x, y, color);
+            }
+        }
+        self
     }
 }
 

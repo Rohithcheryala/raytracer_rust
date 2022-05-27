@@ -3,9 +3,10 @@ use crate::{
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
-    consts::PI_BY_3,
-    material::{Material, Phong},
+    consts::{PI_BY_2, PI_BY_3, PI_BY_6},
+    material::{Material, Phong, PhongLighting},
     matrix::Matrix,
+    pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
     plane::Plane,
     point_light::PointLight,
     ray::Ray,
@@ -24,6 +25,7 @@ pub mod computed_intersection;
 pub mod intersections;
 pub mod material;
 pub mod matrix;
+pub mod pattern;
 pub mod plane;
 pub mod point_light;
 pub mod ray;
@@ -38,6 +40,7 @@ pub mod consts {
     pub const PI_BY_2: f64 = std::f64::consts::FRAC_PI_2;
     pub const PI_BY_3: f64 = std::f64::consts::FRAC_PI_3;
     pub const PI_BY_4: f64 = std::f64::consts::FRAC_PI_4;
+    pub const PI_BY_6: f64 = std::f64::consts::FRAC_PI_6;
     pub const SQRT_2: f64 = std::f64::consts::SQRT_2;
 }
 
@@ -63,7 +66,8 @@ pub fn chapter6_challenge() {
     let mut canvas = Canvas::new(width, width);
     let mut s = Sphere::default();
     match s.material_mut() {
-        Material::Phong(p) => p.color = Color::new(1.0, 0.2, 1.0),
+        // Material::Phong(p) => p.color = Color::new(1.0, 0.2, 1.0),
+        Material::Phong(p) => p.pattern = Pattern::Flat(Flat::new(Color::new(1.0, 0.2, 1.0))),
     }
     let cw: usize = width;
     let size = 10f64;
@@ -89,7 +93,7 @@ pub fn chapter6_challenge() {
                 let color = hit
                     .body
                     .material()
-                    .lighting(light, point, eye, normal, false);
+                    .lighting(&hit.body, light, point, eye, normal, false);
 
                 canvas.set_color_at_pixel(i, j, color);
             }
@@ -111,7 +115,8 @@ pub fn chapter6_challenge_parallel() {
     let world = Mutex::new(Canvas::new(width, width));
     let mut s = Sphere::default();
     match s.material_mut() {
-        Material::Phong(p) => p.color = Color::new(1.0, 0.2, 1.0),
+        // Material::Phong(p) => p.color = Color::new(1.0, 0.2, 1.0),
+        Material::Phong(p) => p.pattern = Pattern::Flat(Flat::new(Color::new(1.0, 0.2, 1.0))),
     }
     let cw: usize = width;
     let size = 10f64;
@@ -137,7 +142,7 @@ pub fn chapter6_challenge_parallel() {
                 let color = hit
                     .body
                     .material()
-                    .lighting(light, point, eye, normal, false);
+                    .lighting(&hit.body, light, point, eye, normal, false);
 
                 // Introduced lock in another scope to unlock the variable just after completion of this command
                 // and not wait until the whole block to complete execution
@@ -163,7 +168,8 @@ fn chapter7_setup() -> (World, Camera) {
     let floor = Sphere::default()
         .with_transform(Matrix::Scaling(10.0, 0.01, 10.0))
         .with_material(Material::Phong(Phong {
-            color: Color::new(1.0, 0.9, 0.9),
+            // color: Color::new(1.0, 0.9, 0.9),
+            pattern: pattern::Pattern::Flat(Flat::new(Color::new(1.0, 0.9, 0.9))),
             specular: 0.0,
             ..Default::default()
         }));
@@ -189,7 +195,8 @@ fn chapter7_setup() -> (World, Camera) {
     let middle = Sphere::default()
         .with_transform(Matrix::Translation(-0.5, 1.0, 0.5))
         .with_material(Material::Phong(Phong {
-            color: Color::new(0.1, 1.0, 0.5),
+            // color: Color::new(0.1, 1.0, 0.5),
+            pattern: pattern::Pattern::Flat(Flat::new(Color::new(0.1, 1.0, 0.5))),
             diffuse: 0.7,
             specular: 0.3,
             ..Default::default()
@@ -198,7 +205,8 @@ fn chapter7_setup() -> (World, Camera) {
     let right = Sphere::default()
         .with_transform(Matrix::Translation(1.5, 0.5, -0.5) * Matrix::Scaling(0.5, 0.5, 0.5))
         .with_material(Material::Phong(Phong {
-            color: Color::new(0.5, 1.0, 0.1),
+            // color: Color::new(0.5, 1.0, 0.1),
+            pattern: pattern::Pattern::Flat(Flat::new(Color::new(0.5, 1.0, 0.1))),
             diffuse: 0.7,
             specular: 0.3,
             ..Default::default()
@@ -207,7 +215,8 @@ fn chapter7_setup() -> (World, Camera) {
     let left = Sphere::default()
         .with_transform(Matrix::Translation(-1.5, 0.33, -0.75) * Matrix::Scaling(0.33, 0.33, 0.33))
         .with_material(Material::Phong(Phong {
-            color: Color::new(1.0, 0.8, 0.1),
+            // color: Color::new(1.0, 0.8, 0.1),
+            pattern: pattern::Pattern::Flat(Flat::new(Color::new(1.0, 0.8, 0.1))),
             diffuse: 0.7,
             specular: 0.3,
             ..Default::default()
@@ -265,32 +274,40 @@ pub fn chapter9_challenge() {
     let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
     // Floor
-    let floor_material = Phong::default()
-        .with_color(Color::new(0.5, 0.45, 0.45))
-        .with_specular(0.0);
+    let floor_material = Phong {
+        pattern: Pattern::Flat(Flat::new(Color::new(0.5, 0.45, 0.45))),
+        specular: 0.0,
+        ..Default::default()
+    };
 
     let floor = Plane::default().with_material(Material::from(floor_material));
 
     // Spheres
     let left_sphere = Sphere::new(
         Matrix::Translation(-1.5, 0.33, -0.75) * Matrix::Scaling(0.33, 0.33, 0.33),
-        Material::Phong(Phong::default().with_color(Color::new(0.78, 0.28, 0.96))),
+        Material::Phong(Phong {
+            pattern: Pattern::Flat(Flat::new(Color::new(0.78, 0.28, 0.96))),
+            ..Default::default()
+        }),
     );
 
     let middle_sphere = Sphere::new(
         Matrix::Translation(-0.5, 1.0, 0.5),
-        Material::Phong(
-            Phong::default()
-                .with_color(Color::new(1.0, 0.49, 0.0))
-                .with_diffuse(0.7)
-                .with_specular(0.1)
-                .with_shininess(50.0),
-        ),
+        Material::Phong(Phong {
+            pattern: Pattern::Flat(Flat::new(Color::new(1.0, 0.49, 0.0))),
+            diffuse: 0.7,
+            specular: 0.1,
+            shininess: 50.0,
+            ..Default::default()
+        }),
     );
 
     let right_sphere = Sphere::new(
         Matrix::Translation(1.5, 0.5, -0.5) * Matrix::Scaling(0.5, 0.5, 0.5),
-        Material::Phong(Phong::default().with_color(Color::new(0.51, 0.75, 0.06))),
+        Material::Phong(Phong {
+            pattern: Pattern::Flat(Flat::new(Color::new(0.51, 0.75, 0.06))),
+            ..Default::default()
+        }),
     );
 
     let world = World::new(
@@ -312,6 +329,106 @@ pub fn chapter9_challenge() {
     camera
         .render_par(&world)
         .save_as_ppm("challenges/ch9.ppm")
+        .unwrap();
+    let elapsed = now.elapsed();
+
+    println!("time taken: {} ms", elapsed.as_millis());
+}
+
+pub fn chapter10_challenge() {
+    println!("Chapter 10 challenge with multi-threading ...");
+    let now = Instant::now();
+
+    let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+
+    // Floor
+    let floor = Plane::new(
+        Material::Phong(Phong {
+            pattern: Pattern::Striped(Striped::new(
+                Color::BLACK(),
+                Color::WHITE(),
+                Matrix::Identity(),
+            )),
+            specular: 0.0,
+            ..Default::default()
+        }),
+        Matrix::Identity(),
+    );
+
+    let too_left_sphere = Sphere::new(
+        Matrix::Translation(-6.0, 3.0, 10.0),
+        Material::Phong(Phong {
+            pattern: Pattern::Ring(Ring::new(
+                Color::RED(),
+                Color::WHITE(),
+                Matrix::rotation_Y(-PI_BY_6) * Matrix::Scaling(0.2, 0.2, 0.2),
+            )),
+            ..Default::default()
+        }),
+    );
+
+    let left_sphere = Sphere::new(
+        Matrix::Translation(-1.5, 0.33, -0.75) * Matrix::Scaling(0.33, 0.33, 0.33),
+        Material::Phong(Phong {
+            pattern: Pattern::Striped(Striped::new(
+                Color::RED(),
+                Color::WHITE(),
+                Matrix::rotation_Z(-PI_BY_6)
+                    * Matrix::Translation(-1.0, 0.0, 0.0)
+                    * Matrix::Scaling(0.2, 1.0, 1.0),
+            )),
+            ..Default::default()
+        }),
+    );
+
+    let mid_sphere = Sphere::new(
+        Matrix::Translation(-0.5, 1.0, 1.5),
+        Material::Phong(Phong {
+            pattern: Pattern::Gradient(Gradient::new(
+                Color::RED(),
+                Color::GREEN(),
+                Matrix::rotation_Z(PI_BY_2)
+                    * Matrix::Translation(-1.0, 0.0, 0.0)
+                    * Matrix::Scaling(2.0, 1.0, 1.0),
+            )),
+            diffuse: 0.9,
+            specular: 1.8,
+            ..Default::default()
+        }),
+    );
+
+    let right_sphere = Sphere::new(
+        Matrix::Translation(1.5, 0.5, -0.5) * Matrix::Scaling(0.5, 0.5, 0.5),
+        Material::Phong(Phong {
+            pattern: Pattern::Checkers(Checkers::new(
+                Color::BLUE(),
+                Color::WHITE(),
+                Matrix::rotation_Z(PI_BY_6) * Matrix::Scaling(0.4, 0.4, 0.4),
+            )),
+            ..Default::default()
+        }),
+    );
+
+    let world = World::new(
+        vec![light],
+        vec![
+            Body::from(floor),
+            Body::from(too_left_sphere),
+            Body::from(left_sphere),
+            Body::from(mid_sphere),
+            Body::from(right_sphere),
+        ],
+    );
+
+    let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
+        Tuple::Point(0.0, 1.5, -5.0),
+        Tuple::Point(0.0, 1.0, 0.0),
+        Tuple::Vector(0.0, 1.0, 0.0),
+    );
+
+    camera
+        .render_par(&world)
+        .save_as_ppm("challenges/ch10.ppm")
         .unwrap();
     let elapsed = now.elapsed();
     println!("time taken: {} ms", elapsed.as_millis());

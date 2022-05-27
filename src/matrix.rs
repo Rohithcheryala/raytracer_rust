@@ -4,7 +4,7 @@ use std::{
     ops::{Div, Index, IndexMut, Mul},
 };
 
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Copy)]
 pub struct Matrix<const N: usize> {
     inner: [[f64; N]; N],
 }
@@ -268,12 +268,12 @@ impl Matrix<4> {
     /// ```
     #[allow(non_snake_case)]
     #[rustfmt::skip]
-    pub fn rotation_X(x: f64) -> Matrix<4> {
+    pub fn rotation_X(radians: f64) -> Matrix<4> {
         Matrix::from([
-            [1.0,   0.0,     0.0,    0.0],
-            [0.0, x.cos(), -x.sin(), 0.0],
-            [0.0, x.sin(), x.cos(),  0.0],
-            [0.0,   0.0,     0.0,    1.0],
+            [1.0,      0.0,            0.0,      0.0],
+            [0.0, radians.cos(), -radians.sin(), 0.0],
+            [0.0, radians.sin(), radians.cos(),  0.0],
+            [0.0,      0.0,            0.0,      1.0],
         ])
     }
 
@@ -291,12 +291,12 @@ impl Matrix<4> {
     /// ```
     #[allow(non_snake_case)]
     #[rustfmt::skip]
-    pub fn rotation_Y(x: f64) -> Matrix<4> {
+    pub fn rotation_Y(radians: f64) -> Matrix<4> {
         Matrix::from([
-            [x.cos(),  0.0, x.sin(), 0.0],
-            [0.0,      1.0, 0.0,     0.0],
-            [-x.sin(), 0.0, x.cos(), 0.0],
-            [0.0,      0.0, 0.0,     1.0],
+            [radians.cos(),  0.0, radians.sin(), 0.0],
+            [    0.0,        1.0,      0.0,      0.0],
+            [-radians.sin(), 0.0, radians.cos(), 0.0],
+            [    0.0,        0.0,      0.0,      1.0],
         ])
     }
 
@@ -314,12 +314,12 @@ impl Matrix<4> {
     /// ```
     #[allow(non_snake_case)]
     #[rustfmt::skip]
-    pub fn rotation_Z(x: f64) -> Matrix<4> {
+    pub fn rotation_Z(radians: f64) -> Matrix<4> {
         Matrix::from([
-            [x.cos(), -x.sin(), 0.0, 0.0],
-            [x.sin(),  x.cos(), 0.0, 0.0],
-            [  0.0,     0.0,    1.0, 0.0],
-            [  0.0,     0.0,    0.0, 1.0],
+            [radians.cos(), -radians.sin(), 0.0, 0.0],
+            [radians.sin(),  radians.cos(), 0.0, 0.0],
+            [     0.0,            0.0,      1.0, 0.0],
+            [     0.0,            0.0,      0.0, 1.0],
         ])
     }
 
@@ -595,6 +595,22 @@ impl Mul<Tuple> for Matrix<4> {
         }
 
         Tuple::from(v)
+    }
+}
+
+impl<const N: usize> Debug for Matrix<N> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+        let max_chars = 6;
+        for j in self.inner.iter() {
+            for i in j.iter() {
+                let i_as_str = i.round_to_n_decimal_places(2).to_string();
+                out.push_str(&i_as_str);
+                out.push_str(&" ".repeat(max_chars - i_as_str.len()));
+            }
+            out.push('\n');
+        }
+        write!(f, "{}", out)
     }
 }
 

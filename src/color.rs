@@ -1,5 +1,8 @@
 use crate::consts::EPSILON;
-use std::ops::{Add, Mul, Sub};
+use std::{
+    cmp::min,
+    ops::{Add, Mul, Sub},
+};
 
 pub trait RGB {
     fn red(&self) -> f64;
@@ -9,11 +12,15 @@ pub trait RGB {
 
 pub trait ToRGB: RGB {
     fn to_rgb_string(&self) -> String {
+        // color can be (1.1,0,0)
+        // This could cause problem because 1.1 * 255 > 255(max value of a color varient),
+        // This will break images in very bright spots,
+        // So, use min(color_val,255) so its always <= 255.
         format!(
             "{} {} {}",
-            (self.red() * 255_f64) as i64,
-            (self.green() * 255_f64) as i64,
-            (self.blue() * 255_f64) as i64,
+            min((self.red() * 255_f64) as i64, 255),
+            min((self.green() * 255_f64) as i64, 255),
+            min((self.blue() * 255_f64) as i64, 255),
         )
     }
 }
@@ -35,13 +42,33 @@ impl Color {
     }
 
     #[inline]
-    pub fn white() -> Self {
+    #[allow(non_snake_case)]
+    pub fn WHITE() -> Self {
         Self::new(1.0, 1.0, 1.0)
     }
 
     #[inline]
-    pub fn black() -> Self {
+    #[allow(non_snake_case)]
+    pub fn BLACK() -> Self {
         Self::new(0.0, 0.0, 0.0)
+    }
+
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn RED() -> Self {
+        Self::new(1.0, 0.0, 0.0)
+    }
+
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn GREEN() -> Self {
+        Self::new(0.0, 1.0, 0.0)
+    }
+
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn BLUE() -> Self {
+        Self::new(0.0, 0.0, 1.0)
     }
 }
 
