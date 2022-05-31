@@ -8,15 +8,15 @@ use crate::{
 
 #[derive(Clone, Copy, Debug)]
 pub struct Plane {
-    material: Material,
     transform: Matrix<4>,
+    material: Material,
 }
 
 impl Plane {
-    pub fn new(material: Material, transform: Matrix<4>) -> Self {
+    pub fn new(transform: Matrix<4>, material: Material) -> Self {
         Self {
-            material,
             transform,
+            material,
         }
     }
 

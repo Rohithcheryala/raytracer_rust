@@ -6,6 +6,7 @@ pub struct ComputedIntersection {
     pub body: Body,
     pub eyev: Tuple,
     pub normalv: Tuple,
+    pub reflectv: Tuple,
 }
 
 impl ComputedIntersection {
@@ -16,6 +17,7 @@ impl ComputedIntersection {
         body: Body,
         eyev: Tuple,
         normalv: Tuple,
+        reflectv: Tuple,
     ) -> Self {
         Self {
             inside,
@@ -24,6 +26,7 @@ impl ComputedIntersection {
             body,
             eyev,
             normalv,
+            reflectv,
         }
     }
 }

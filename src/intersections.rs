@@ -28,7 +28,10 @@ impl Intersection {
             normalv = -normalv;
         }
         let over_point = position + normalv * EPSILON;
-        ComputedIntersection::new(inside, position, over_point, self.body, eyev, normalv)
+        let reflectv = self.ray.direction.reflect(normalv);
+        ComputedIntersection::new(
+            inside, position, over_point, self.body, eyev, normalv, reflectv,
+        )
     }
 }
 

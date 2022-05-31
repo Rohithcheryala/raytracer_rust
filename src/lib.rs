@@ -3,7 +3,7 @@ use crate::{
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
-    consts::{PI_BY_2, PI_BY_3, PI_BY_6},
+    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_4, PI_BY_6},
     material::{Material, Phong, PhongLighting},
     matrix::Matrix,
     pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
@@ -318,6 +318,7 @@ pub fn chapter9_challenge() {
             Body::from(middle_sphere),
             Body::from(right_sphere),
         ],
+        0,
     );
 
     let camera = Camera::new(800, 800, PI_BY_3).look_at_from_position(
@@ -343,6 +344,7 @@ pub fn chapter10_challenge() {
 
     // Floor
     let floor = Plane::new(
+        Matrix::Identity(),
         Material::Phong(Phong {
             pattern: Pattern::Striped(Striped::new(
                 Color::BLACK(),
@@ -352,7 +354,6 @@ pub fn chapter10_challenge() {
             specular: 0.0,
             ..Default::default()
         }),
-        Matrix::Identity(),
     );
 
     let too_left_sphere = Sphere::new(
@@ -404,6 +405,7 @@ pub fn chapter10_challenge() {
                 Color::BLUE(),
                 Color::WHITE(),
                 Matrix::rotation_Z(PI_BY_6) * Matrix::Scaling(0.4, 0.4, 0.4),
+                true,
             )),
             ..Default::default()
         }),
@@ -418,6 +420,7 @@ pub fn chapter10_challenge() {
             Body::from(mid_sphere),
             Body::from(right_sphere),
         ],
+        0,
     );
 
     let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
@@ -430,6 +433,92 @@ pub fn chapter10_challenge() {
         .render_par(&world)
         .save_as_ppm("challenges/ch10.ppm")
         .unwrap();
+    let elapsed = now.elapsed();
+    println!("time taken: {} ms", elapsed.as_millis());
+}
+
+pub fn chapter11_challenge() {
+    println!("Chapter 11 challenge with multi-threading ...");
+    let now = Instant::now();
+
+    let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+
+    // Floor
+    let floor = Plane::new(
+        Matrix::Identity(),
+        Material::Phong(Phong {
+            pattern: Pattern::Checkers(Checkers::new(
+                Color::BLACK(),
+                Color::WHITE(),
+                Matrix::Identity(),
+                false,
+            )),
+            specular: 0.0,
+            reflectiveness: 0.5,
+            ..Default::default()
+        }),
+    );
+
+    let left_sphere = Sphere::new(
+        Matrix::Translation(-1.5, 0.33, -0.75) * Matrix::Scaling(0.33, 0.33, 0.33),
+        Material::Phong(Phong {
+            pattern: Pattern::Gradient(Gradient::new(
+                Color::RED(),
+                Color::GREEN(),
+                Matrix::rotation_Z(270f64 / 180f64 * PI)
+                    * Matrix::Translation(1.0, 0.0, 0.0)
+                    * Matrix::Scaling(2.0, 2.0, 2.0),
+            )),
+            ..Default::default()
+        }),
+    );
+
+    let mid_sphere = Sphere::new(
+        Matrix::Translation(-0.5, 1.0, 0.5),
+        Material::Phong(Phong {
+            pattern: Pattern::Flat(Flat::new(Color::BLACK())),
+            diffuse: 0.1,
+            specular: 5.0,
+            shininess: 1600.0,
+            reflectiveness: 1.0,
+            ..Default::default()
+        }),
+    );
+
+    let right_sphere = Sphere::new(
+        Matrix::Translation(1.5, 0.5, -0.5) * Matrix::Scaling(0.5, 0.5, 0.5),
+        Material::Phong(Phong {
+            pattern: Pattern::Ring(Ring::new(
+                Color::new(1.0, 1.0, 0.0),
+                Color::new(0.0, 0.0, 1.0),
+                Matrix::rotation_Y(-PI_BY_4) * Matrix::Scaling(0.02, 0.02, 1.0),
+            )),
+            ..Default::default()
+        }),
+    );
+
+    let world = World::new(
+        vec![light],
+        vec![
+            Body::from(floor),
+            Body::from(left_sphere),
+            Body::from(mid_sphere),
+            Body::from(right_sphere),
+        ],
+        5,
+    );
+
+    let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
+        Tuple::Point(0.0, 1.5, -5.0),
+        Tuple::Point(0.0, 1.0, 0.0),
+        Tuple::Vector(0.0, 1.0, 0.0),
+    );
+
+    camera
+        .render_par(&world)
+        .save_as_ppm("challenges/ch11-reflect.ppm")
+        .unwrap();
+
     let elapsed = now.elapsed();
     println!("time taken: {} ms", elapsed.as_millis());
 }

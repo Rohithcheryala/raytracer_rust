@@ -3,7 +3,7 @@ use crate::{
     color::Color,
     computed_intersection::ComputedIntersection,
     intersections::Intersections,
-    material::{Material, Phong, PhongLighting},
+    material::{Material, Phong, PhongLighting, Reflective},
     matrix::Matrix,
     pattern::{Flat, Pattern},
     point_light::PointLight,
@@ -16,13 +16,15 @@ use crate::{
 pub struct World {
     pub point_lights: Vec<PointLight>,
     pub bodies: Vec<Body>,
+    pub reflection_limit: usize,
 }
 
 impl World {
-    pub fn new(point_lights: Vec<PointLight>, bodies: Vec<Body>) -> Self {
+    pub fn new(point_lights: Vec<PointLight>, bodies: Vec<Body>, reflection_limit: usize) -> Self {
         Self {
             point_lights,
             bodies,
+            reflection_limit,
         }
     }
 
@@ -46,6 +48,34 @@ impl World {
 
     /// ```
     /// use raytracer_rust::world::World;
+    /// use raytracer_rust::tuple::Tuple;
+    /// use raytracer_rust::ray::Ray;
+    /// use raytracer_rust::color::Color;
+    ///
+    /// let mut world = World::default_from_book();
+    /// let ray = Ray::new(Tuple::Point(0, 0, -5), Tuple::Vector(0, 0, 1));
+    /// let c = world.color_at(ray);
+    /// assert_eq!(c, Color::new(0.38066, 0.47583, 0.2855));
+    /// ```
+    pub fn color_at(&self, ray: Ray) -> Color {
+        self.color_at_with_reflection_limit(ray, self.reflection_limit)
+    }
+
+    fn color_at_with_reflection_limit(&self, ray: Ray, remaining_reflections: usize) -> Color {
+        let xs = self.intersect(ray);
+        if let Some(intersection) = xs.hit() {
+            let material = intersection.body.material();
+            let cs = intersection.to_computed();
+            let surface_color = self.surface_color_at(&cs);
+            let reflected_color = self.reflected_color_at(&cs, material, remaining_reflections);
+            surface_color + reflected_color
+        } else {
+            Color::BLACK()
+        }
+    }
+
+    /// ```
+    /// use raytracer_rust::world::World;
     /// use raytracer_rust::computed_intersection::ComputedIntersection;
     /// use raytracer_rust::sphere::Sphere;
     /// use raytracer_rust::intersections::Intersection;
@@ -60,7 +90,7 @@ impl World {
     /// let shape = world.bodies[0].clone();
     /// let i = Intersection::new(4.0, shape.into(), ray);
     /// let comps = i.to_computed();
-    /// let c = world.shade_hit(comps);
+    /// let c = world.surface_color_at(&comps);
     /// assert_eq!(c, Color::new(0.38066, 0.47583, 0.2855));
     ///
     /// world.point_lights = vec![PointLight::new(Tuple::Point(0.0, 0.25, 0.0), Color::new(1.0, 1.0, 1.0))];
@@ -68,12 +98,16 @@ impl World {
     /// let shape = world.bodies[1].clone();
     /// let i = Intersection::new(0.5, shape.into(), ray);
     /// let comps = i.to_computed();
-    /// let c = world.shade_hit(comps);
+    /// let c = world.surface_color_at(&comps);
     /// assert_eq!(c, Color::new(0.90498, 0.90498, 0.90498));
     /// ```
-    pub fn shade_hit(&self, comps: ComputedIntersection) -> Color {
-        assert_eq!(self.point_lights.len(), 1, "please read FIXME in shade_hit");
-        comps.body.material().lighting(
+    pub fn surface_color_at(&self, comps: &ComputedIntersection) -> Color {
+        assert_eq!(
+            self.point_lights.len(),
+            1,
+            "please read FIXME in surface_color_at"
+        );
+        let surface_color = comps.body.material().lighting(
             // FIXME: why point_lights[0] is hard coded
             // maybe, iterate through all point lights and add the color of each light
             // adding might be a problem, if its sum > 1 for a color component
@@ -83,25 +117,21 @@ impl World {
             comps.eyev,
             comps.normalv,
             self.is_shadowed(comps.over_point),
-        )
+        );
+        surface_color
     }
 
-    /// ```
-    /// use raytracer_rust::world::World;
-    /// use raytracer_rust::tuple::Tuple;
-    /// use raytracer_rust::ray::Ray;
-    /// use raytracer_rust::color::Color;
-    ///
-    /// let mut world = World::default_from_book();
-    /// let ray = Ray::new(Tuple::Point(0, 0, -5), Tuple::Vector(0, 0, 1));
-    /// let c = world.color_at(ray);
-    /// assert_eq!(c, Color::new(0.38066, 0.47583, 0.2855));
-    /// ```
-    pub fn color_at(&self, r: Ray) -> Color {
-        let xs = self.intersect(r);
-        if let Some(intersection) = xs.hit() {
-            let cs = (*intersection).to_computed();
-            self.shade_hit(cs)
+    fn reflected_color_at(
+        &self,
+        cs: &ComputedIntersection,
+        material: &Material,
+        remaining_reflections: usize,
+    ) -> Color {
+        if remaining_reflections > 0 && material.reflectiveness() != 0.0 {
+            let reflected_ray = Ray::new(cs.over_point, cs.reflectv);
+            let color =
+                self.color_at_with_reflection_limit(reflected_ray, remaining_reflections - 1);
+            color * material.reflectiveness()
         } else {
             Color::BLACK()
         }
@@ -138,6 +168,7 @@ impl World {
                     .with_transform(Matrix::Scaling(0.5, 0.5, 0.5))
                     .into(),
             ],
+            reflection_limit: 0,
         }
     }
 }

@@ -20,6 +20,19 @@ pub struct Phong {
     pub diffuse: f32,
     pub specular: f32,
     pub shininess: f32,
+    pub reflectiveness: f32,
+}
+
+pub trait Reflective {
+    fn reflectiveness(&self) -> f32;
+}
+
+impl Reflective for Material {
+    fn reflectiveness(&self) -> f32 {
+        match self {
+            Material::Phong(p) => p.reflectiveness,
+        }
+    }
 }
 
 pub trait PhongLighting {
@@ -53,7 +66,6 @@ impl PhongLighting for Material {
 }
 
 impl Phong {
-
     pub fn with_ambient(mut self, c: f32) -> Self {
         self.ambient = c;
         self
@@ -73,6 +85,11 @@ impl Phong {
         self.shininess = c;
         self
     }
+
+    pub fn with_reflectiveness(mut self, c: f32) -> Self {
+        self.reflectiveness = c;
+        self
+    }
 }
 
 impl Default for Phong {
@@ -83,6 +100,7 @@ impl Default for Phong {
             diffuse: 0.9,
             specular: 0.9,
             shininess: 200.0,
+            reflectiveness: 0.0,
         }
     }
 }

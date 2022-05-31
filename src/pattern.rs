@@ -50,6 +50,7 @@ pub struct Checkers {
     color_a: Color,
     color_b: Color,
     pub transform: Matrix<4>,
+    is_three_dimensional: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -99,11 +100,17 @@ impl Ring {
 }
 
 impl Checkers {
-    pub fn new(color_a: Color, color_b: Color, transform: Matrix<4>) -> Self {
+    pub fn new(
+        color_a: Color,
+        color_b: Color,
+        transform: Matrix<4>,
+        is_three_dimensional: bool,
+    ) -> Self {
         Self {
             color_a,
             color_b,
             transform,
+            is_three_dimensional,
         }
     }
 }
@@ -141,7 +148,6 @@ impl Stencil for Flat {
 
 impl Stencil for Striped {
     fn color_at_in_pattern_space(&self, position: Tuple) -> Color {
-        // if (position.x % self.width as f64).floor() == 0.0 {
         if (position.x.floor() as isize % 2) == 0 {
             self.color_a
         } else {
@@ -179,7 +185,9 @@ impl Stencil for Ring {
 
 impl Stencil for Checkers {
     fn color_at_in_pattern_space(&self, position: Tuple) -> Color {
-        let distance = position.x.floor() + position.y.floor() + position.z.floor();
+        let distance = position.x.floor()
+            + position.z.floor()
+            + (self.is_three_dimensional as u8 as f64) * position.y.floor();
         if distance as isize % 2 == 0 {
             self.color_a
         } else {
