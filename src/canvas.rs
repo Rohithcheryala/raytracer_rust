@@ -67,6 +67,16 @@ impl Canvas {
         }
         self
     }
+
+    // For debugging purposes.
+    pub fn color_pixels(mut self, px: usize, py: usize, range: usize, color: Color) -> Self {
+        for y in (py - range / 2)..(py + range / 2 + 1) {
+            for x in (px - range / 2)..(px + range / 2 + 1) {
+                self.set_color_at_pixel(x, y, color);
+            }
+        }
+        self
+    }
 }
 
 impl Sized for Canvas {

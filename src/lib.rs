@@ -3,7 +3,7 @@ use crate::{
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
-    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_4, PI_BY_6},
+    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
     material::{Material, Phong, PhongLighting},
     matrix::Matrix,
     pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
@@ -93,7 +93,7 @@ pub fn chapter6_challenge() {
                 let color = hit
                     .body
                     .material()
-                    .lighting(&hit.body, light, point, eye, normal, false);
+                    .lighting(&hit.body, light, point, eye, normal, 0.0);
 
                 canvas.set_color_at_pixel(i, j, color);
             }
@@ -142,7 +142,7 @@ pub fn chapter6_challenge_parallel() {
                 let color = hit
                     .body
                     .material()
-                    .lighting(&hit.body, light, point, eye, normal, false);
+                    .lighting(&hit.body, light, point, eye, normal, 0.0);
 
                 // Introduced lock in another scope to unlock the variable just after completion of this command
                 // and not wait until the whole block to complete execution
@@ -478,9 +478,11 @@ pub fn chapter11_challenge() {
         Material::Phong(Phong {
             pattern: Pattern::Flat(Flat::new(Color::BLACK())),
             diffuse: 0.1,
-            specular: 5.0,
-            shininess: 1600.0,
-            reflectiveness: 1.0,
+            specular: 0.3,
+            shininess: 200.0,
+            // reflectiveness: 1.0,
+            transparency: 1.0,
+            refractive_index: 1.5,
             ..Default::default()
         }),
     );
@@ -488,11 +490,11 @@ pub fn chapter11_challenge() {
     let right_sphere = Sphere::new(
         Matrix::Translation(1.5, 0.5, -0.5) * Matrix::Scaling(0.5, 0.5, 0.5),
         Material::Phong(Phong {
-            pattern: Pattern::Ring(Ring::new(
-                Color::new(1.0, 1.0, 0.0),
-                Color::new(0.0, 0.0, 1.0),
-                Matrix::rotation_Y(-PI_BY_4) * Matrix::Scaling(0.02, 0.02, 1.0),
-            )),
+            pattern: Pattern::Flat(Flat::new(Color::BLACK())),
+            shininess: 1000.0,
+            refractive_index: 1.5,
+            // transparency: 1.0,
+            reflectiveness: 1.0,
             ..Default::default()
         }),
     );
@@ -516,7 +518,7 @@ pub fn chapter11_challenge() {
 
     camera
         .render_par(&world)
-        .save_as_ppm("challenges/ch11-reflect.ppm")
+        .save_as_ppm("challenges/ch11-refract.ppm")
         .unwrap();
 
     let elapsed = now.elapsed();

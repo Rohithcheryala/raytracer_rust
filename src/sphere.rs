@@ -6,7 +6,7 @@ use crate::{
     tuple::Tuple,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Sphere {
     transform: Matrix<4>,
     material: Material,

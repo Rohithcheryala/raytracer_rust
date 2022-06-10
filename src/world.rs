@@ -3,7 +3,7 @@ use crate::{
     color::Color,
     computed_intersection::ComputedIntersection,
     intersections::Intersections,
-    material::{Material, Phong, PhongLighting, Reflective},
+    material::{Material, Phong, PhongLighting, Reflective, Refractive},
     matrix::Matrix,
     pattern::{Flat, Pattern},
     point_light::PointLight,
@@ -42,7 +42,7 @@ impl World {
             let x = s.intersect(&r);
             xs.extend(x);
         });
-        xs.sort_by(|a, b| (a.t.partial_cmp(&b.t)).unwrap());
+        xs.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
         xs
     }
 
@@ -64,11 +64,22 @@ impl World {
     fn color_at_with_reflection_limit(&self, ray: Ray, remaining_reflections: usize) -> Color {
         let xs = self.intersect(ray);
         if let Some(intersection) = xs.hit() {
+            let (mu_from, mu_to) = xs.get_mu_shift(intersection);
             let material = intersection.body.material();
-            let cs = intersection.to_computed();
+            let cs = intersection.to_computed(mu_from, mu_to);
             let surface_color = self.surface_color_at(&cs);
             let reflected_color = self.reflected_color_at(&cs, material, remaining_reflections);
-            surface_color + reflected_color
+            let refracted_color = self.refracted_color_at(&cs, material, remaining_reflections);
+            let reflectance = cs.schlick();
+            let total_color = if material.transparency() != 0.0 && material.reflectiveness() != 0.0
+            {
+                surface_color
+                    + reflected_color * reflectance
+                    + refracted_color * (1.0 - reflectance)
+            } else {
+                surface_color + reflected_color + refracted_color
+            };
+            total_color
         } else {
             Color::BLACK()
         }
@@ -112,11 +123,11 @@ impl World {
             // maybe, iterate through all point lights and add the color of each light
             // adding might be a problem, if its sum > 1 for a color component
             &comps.body,
-            self.point_lights[0].clone(),
+            self.point_lights[0],
             comps.point,
             comps.eyev,
             comps.normalv,
-            self.is_shadowed(comps.over_point),
+            self.transparency_factor(comps.over_point),
         );
         surface_color
     }
@@ -137,6 +148,35 @@ impl World {
         }
     }
 
+    fn refracted_color_at(
+        &self,
+        cs: &ComputedIntersection,
+        material: &Material,
+        remaining_reflections: usize,
+    ) -> Color {
+        if remaining_reflections > 0 && material.transparency() != 0.0 {
+            let mu_ratio = cs.mu_from / cs.mu_to;
+            let cos_i = cs.eyev.dot(&cs.normalv);
+            let sin2_t = (mu_ratio * mu_ratio) as f64 * (1.0 - (cos_i * cos_i));
+            if sin2_t <= 1.0 {
+                // refract
+                let cos_t = (1.0 - sin2_t).sqrt();
+                let direction = cs.normalv * (mu_ratio as f64 * cos_i - cos_t) - cs.eyev * mu_ratio;
+
+                let refracted_ray = Ray::new(cs.under_point, direction);
+                let refracted_color =
+                    self.color_at_with_reflection_limit(refracted_ray, remaining_reflections - 1);
+
+                refracted_color * material.transparency()
+            } else {
+                // total-internal reflection
+                Color::BLACK()
+            }
+        } else {
+            Color::BLACK()
+        }
+    }
+
     // FIXME: using "any" is not well understood.
     pub fn is_shadowed(&self, point: Tuple) -> bool {
         self.point_lights.iter().any(|light| {
@@ -147,6 +187,28 @@ impl World {
             let intersections = self.intersect(r);
             intersections.hit().map(|i| i.t < distance).unwrap_or(false)
         })
+    }
+
+    pub fn transparency_factor(&self, point: Tuple) -> f64 {
+        let light = self.point_lights[0].clone();
+        let v = light.position - point;
+        let distance = v.magnitude();
+        let direction = v.normalize();
+        let r = Ray::new(point, direction);
+        let intersections = self.intersect(r);
+        let mut hit_objects = vec![];
+        let factor = intersections
+            .iter()
+            .filter(|i| !(i.t.is_sign_negative() || i.t > distance))
+            .fold(1.0, |acc, i| {
+                if hit_objects.contains(&i.body.material()) {
+                    acc
+                } else {
+                    hit_objects.push(i.body.material());
+                    acc * i.body.material().transparency() as f64
+                }
+            });
+        factor
     }
 
     pub fn default_from_book() -> Self {
@@ -215,5 +277,33 @@ mod tests {
         assert_eq!(w.is_shadowed(Tuple::Point(10.0, -10.0, 10.0)), true);
         assert_eq!(w.is_shadowed(Tuple::Point(-20.0, 20.0, -20.0)), false);
         assert_eq!(w.is_shadowed(Tuple::Point(-2.0, 2.0, -2.0)), false);
+    }
+
+    #[test]
+    fn transparency_factor_works() {
+        let s1 = Sphere::new(
+            Matrix::Identity(),
+            Material::Phong(Phong {
+                transparency: 0.5,
+                ..Default::default()
+            }),
+        );
+        let s2 = Sphere::new(
+            Matrix::Translation(10, 0, 0),
+            Material::Phong(Phong {
+                transparency: 0.25,
+                ..Default::default()
+            }),
+        );
+        let w = World::new(
+            vec![PointLight::new(
+                Tuple::Point(-100.0, 0.0, 0.0),
+                Color::WHITE(),
+            )],
+            vec![s1.into(), s2.into()],
+            5,
+        );
+        let result = w.transparency_factor(Tuple::Point(100, 0, 0));
+        assert_eq!(result, 0.5 * 0.25);
     }
 }

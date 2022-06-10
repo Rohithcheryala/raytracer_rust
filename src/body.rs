@@ -101,7 +101,7 @@ impl Intersectable for Body {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Body {
     Sphere(Sphere),
     Plane(Plane),

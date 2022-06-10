@@ -16,7 +16,7 @@ pub trait Stencil {
     fn color_at_in_pattern_space(&self, position: Tuple) -> Color;
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Pattern {
     Checkers(Checkers),
     Flat(Flat),
@@ -25,27 +25,27 @@ pub enum Pattern {
     Striped(Striped),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Striped {
     color_a: Color,
     color_b: Color,
     pub transform: Matrix<4>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Flat {
     color: Color,
     pub transform: Matrix<4>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Gradient {
     color_a: Color,
     color_b: Color,
     pub transform: Matrix<4>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Checkers {
     color_a: Color,
     color_b: Color,
@@ -53,7 +53,7 @@ pub struct Checkers {
     is_three_dimensional: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ring {
     color_a: Color,
     color_b: Color,
@@ -148,7 +148,7 @@ impl Stencil for Flat {
 
 impl Stencil for Striped {
     fn color_at_in_pattern_space(&self, position: Tuple) -> Color {
-        if (position.x.floor() as isize % 2) == 0 {
+        if position.x.floor() as isize % 2 == 0 {
             self.color_a
         } else {
             self.color_b
@@ -162,7 +162,6 @@ impl Stencil for Striped {
 impl Stencil for Gradient {
     fn color_at_in_pattern_space(&self, position: Tuple) -> Color {
         self.color_a + (self.color_b - self.color_a) * (position.x - position.x.floor())
-        // self.color_a * (todo!()) + self.color_b * (todo!())
     }
     fn transform(&self) -> Matrix<4> {
         self.transform

@@ -7,12 +7,12 @@ use crate::{
     tuple::Tuple,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Material {
     Phong(Phong),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Phong {
     // pub color: Color,
     pub pattern: Pattern,
@@ -21,6 +21,8 @@ pub struct Phong {
     pub specular: f32,
     pub shininess: f32,
     pub reflectiveness: f32,
+    pub transparency: f32,
+    pub refractive_index: f32,
 }
 
 pub trait Reflective {
@@ -35,15 +37,34 @@ impl Reflective for Material {
     }
 }
 
+pub trait Refractive {
+    fn refractive_index(&self) -> f32;
+    fn transparency(&self) -> f32;
+}
+
+impl Refractive for Material {
+    fn refractive_index(&self) -> f32 {
+        match self {
+            Material::Phong(p) => p.refractive_index,
+        }
+    }
+
+    fn transparency(&self) -> f32 {
+        match self {
+            Material::Phong(p) => p.transparency,
+        }
+    }
+}
+
 pub trait PhongLighting {
     fn lighting(
         &self,
         body: &Body,
         light: PointLight,
-        position: Tuple,
+        point: Tuple,
         eyev: Tuple,
         normalv: Tuple,
-        in_shadow: bool,
+        transparency_factor: f64,
     ) -> Color;
 }
 
@@ -52,14 +73,14 @@ impl PhongLighting for Material {
         &self,
         body: &Body,
         light: PointLight,
-        position: Tuple,
+        point: Tuple,
         eyev: Tuple,
         normalv: Tuple,
-        in_shadow: bool,
+        transparency_factor: f64,
     ) -> Color {
         match self {
             Material::Phong(phong) => {
-                phong.lighting(body, light, position, eyev, normalv, in_shadow)
+                phong.lighting(body, light, point, eyev, normalv, transparency_factor)
             }
         }
     }
@@ -101,6 +122,8 @@ impl Default for Phong {
             specular: 0.9,
             shininess: 200.0,
             reflectiveness: 0.0,
+            transparency: 0.0,
+            refractive_index: 1.0,
         }
     }
 }
@@ -110,15 +133,15 @@ impl PhongLighting for Phong {
         &self,
         body: &Body,
         light: PointLight,
-        position: Tuple,
+        point: Tuple,
         eyev: Tuple,
         normalv: Tuple,
-        in_shadow: bool,
+        transparency_factor: f64,
     ) -> Color {
-        let effective_color = self.color_at(body, position) * light.intensity;
+        let effective_color = self.color_at(body, point) * light.intensity;
         let ambient = effective_color * self.ambient;
 
-        let lightv = (light.position - position).normalize();
+        let lightv = (light.position - point).normalize();
         let light_dot_normal = lightv.dot(&normalv);
         let (diffuse, specular);
 
@@ -136,13 +159,7 @@ impl PhongLighting for Phong {
                 specular = light.intensity * self.specular * factor;
             }
         }
-        // HACK: why use branching here
-        // ambient + (diffuse + specular) * in_shadow as u8;
-        if in_shadow {
-            ambient
-        } else {
-            ambient + diffuse + specular
-        }
+        ambient + (diffuse + specular) * transparency_factor
     }
 }
 
