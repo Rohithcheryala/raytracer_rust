@@ -1,5 +1,5 @@
 use crate::{
-    body::Body,
+    body::{Body, Intersectable},
     color::Color,
     computed_intersection::ComputedIntersection,
     intersections::Intersections,

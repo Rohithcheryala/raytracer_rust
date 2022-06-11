@@ -1,22 +1,3 @@
-use crate::{
-    body::{Body, Intersectable},
-    camera::Camera,
-    canvas::{Canvas, ToPPM},
-    color::Color,
-    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
-    material::{Material, Phong, PhongLighting},
-    matrix::Matrix,
-    pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
-    plane::Plane,
-    point_light::PointLight,
-    ray::Ray,
-    sphere::Sphere,
-    tuple::Tuple,
-    world::World,
-};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::{sync::Mutex, time::Instant};
-
 pub mod body;
 pub mod camera;
 pub mod canvas;
@@ -58,6 +39,25 @@ impl RoundToNDecimalPlaces for f64 {
         (self * ten_n).round() / ten_n
     }
 }
+
+use crate::{
+    body::{Body, Intersectable},
+    camera::Camera,
+    canvas::{Canvas, ToPPM},
+    color::Color,
+    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
+    material::{Material, Phong, PhongLighting},
+    matrix::Matrix,
+    pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
+    plane::Plane,
+    point_light::PointLight,
+    ray::Ray,
+    sphere::Sphere,
+    tuple::Tuple,
+    world::World,
+};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::{sync::Mutex, time::Instant};
 
 pub fn chapter6_challenge() {
     println!("Chapter 6 challenge without multi-threading ...");

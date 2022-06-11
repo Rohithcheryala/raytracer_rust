@@ -1,5 +1,5 @@
 use crate::{
-    body::Body, computed_intersection::ComputedIntersection, consts::EPSILON, material::Refractive,
+    body::{Body, Intersectable}, computed_intersection::ComputedIntersection, consts::EPSILON, material::Refractive,
     ray::Ray,
 };
 use std::ops::Index;

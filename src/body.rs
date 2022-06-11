@@ -59,7 +59,7 @@ where
         world_normal.normalize()
     }
 
-    /// Returns the sorted distances to the intersection points in a vector.
+    /// Returns the ```sorted``` distances to the intersection points in a vector.
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64>;
     fn normal_at_in_object_space(&self, object_space_point: Tuple) -> Tuple;
 }
@@ -105,36 +105,6 @@ impl Intersectable for Body {
 pub enum Body {
     Sphere(Sphere),
     Plane(Plane),
-}
-
-impl Body {
-    pub fn normal_at(&self, point: Tuple) -> Tuple {
-        match self {
-            Body::Sphere(s) => s.normal_at(point),
-            Body::Plane(p) => p.normal_at(point),
-        }
-    }
-
-    pub fn material(&self) -> &Material {
-        match self {
-            Body::Sphere(s) => s.material(),
-            Body::Plane(p) => p.material(),
-        }
-    }
-
-    pub fn material_mut(&mut self) -> &mut Material {
-        match self {
-            Body::Sphere(s) => s.material_mut(),
-            Body::Plane(p) => p.material_mut(),
-        }
-    }
-
-    pub fn intersect(&self, ray: &Ray) -> Intersections {
-        match self {
-            Body::Sphere(s) => s.intersect(ray),
-            Body::Plane(p) => p.intersect(ray),
-        }
-    }
 }
 
 impl From<Sphere> for Body {
