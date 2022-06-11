@@ -1,5 +1,7 @@
 use crate::{
-    body::{Body, Intersectable}, computed_intersection::ComputedIntersection, consts::EPSILON, material::Refractive,
+    body::{Body, Intersectable},
+    computed_intersection::ComputedIntersection,
+    material::Refractive,
     ray::Ray,
 };
 use std::ops::Index;
@@ -30,20 +32,9 @@ impl Intersection {
         if inside {
             normalv = -normalv;
         }
-        let over_point = position + normalv * EPSILON;
-        let under_point = position - normalv * EPSILON;
         let reflectv = self.ray.direction.reflect(normalv);
         ComputedIntersection::new(
-            inside,
-            position,
-            over_point,
-            under_point,
-            self.body,
-            eyev,
-            normalv,
-            reflectv,
-            mu_from,
-            mu_to,
+            inside, position, self.body, eyev, normalv, reflectv, mu_from, mu_to,
         )
     }
 }
@@ -107,10 +98,8 @@ impl Intersections {
         let mut containers: Vec<Body> = vec![];
         let (mut mu_from, mut mu_to) = (1.0, 1.0);
         for i in self.data.iter() {
-            if i == intersection {
-                if !containers.is_empty() {
-                    mu_from = containers.last().unwrap().material().refractive_index();
-                };
+            if i == intersection && !containers.is_empty() {
+                mu_from = containers.last().unwrap().material().refractive_index();
             }
             if containers.contains(&i.body) {
                 let index = containers.iter().position(|x| x == &i.body).unwrap();

@@ -71,15 +71,13 @@ impl World {
             let reflected_color = self.reflected_color_at(&cs, material, remaining_reflections);
             let refracted_color = self.refracted_color_at(&cs, material, remaining_reflections);
             let reflectance = cs.schlick();
-            let total_color = if material.transparency() != 0.0 && material.reflectiveness() != 0.0
-            {
+            if material.transparency() != 0.0 && material.reflectiveness() != 0.0 {
                 surface_color
                     + reflected_color * reflectance
                     + refracted_color * (1.0 - reflectance)
             } else {
                 surface_color + reflected_color + refracted_color
-            };
-            total_color
+            }
         } else {
             Color::BLACK()
         }
@@ -190,7 +188,7 @@ impl World {
     }
 
     pub fn transparency_factor(&self, point: Tuple) -> f64 {
-        let light = self.point_lights[0].clone();
+        let light = self.point_lights[0];
         let v = light.position - point;
         let distance = v.magnitude();
         let direction = v.normalize();

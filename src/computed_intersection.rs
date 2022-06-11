@@ -1,4 +1,4 @@
-use crate::{body::Body, tuple::Tuple};
+use crate::{body::Body, consts::EPSILON, tuple::Tuple};
 pub struct ComputedIntersection {
     pub inside: bool,
     pub point: Tuple,
@@ -13,11 +13,10 @@ pub struct ComputedIntersection {
 }
 
 impl ComputedIntersection {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         inside: bool,
         point: Tuple,
-        over_point: Tuple,
-        under_point: Tuple,
         body: Body,
         eyev: Tuple,
         normalv: Tuple,
@@ -28,8 +27,8 @@ impl ComputedIntersection {
         Self {
             inside,
             point,
-            over_point,
-            under_point,
+            over_point: point + normalv * EPSILON,
+            under_point: point - normalv * EPSILON,
             body,
             eyev,
             normalv,
