@@ -98,7 +98,7 @@ impl World {
     ///
     /// let shape = world.bodies[0].clone();
     /// let i = Intersection::new(4.0, shape.into(), ray);
-    /// let comps = i.to_computed();
+    /// let comps = i.to_computed(0.0,0.0);
     /// let c = world.surface_color_at(&comps);
     /// assert_eq!(c, Color::new(0.38066, 0.47583, 0.2855));
     ///
@@ -106,7 +106,7 @@ impl World {
     /// let ray = Ray::new(Tuple::Point(0, 0, 0), Tuple::Vector(0, 0, 1));
     /// let shape = world.bodies[1].clone();
     /// let i = Intersection::new(0.5, shape.into(), ray);
-    /// let comps = i.to_computed();
+    /// let comps = i.to_computed(0.0,0.0);
     /// let c = world.surface_color_at(&comps);
     /// assert_eq!(c, Color::new(0.90498, 0.90498, 0.90498));
     /// ```

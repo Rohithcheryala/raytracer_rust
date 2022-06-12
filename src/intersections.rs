@@ -167,7 +167,6 @@ mod tests {
         xs.extend(xsdown);
         xs.extend(xsup);
 
-        xs[100];
         xs.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
 
         let (mu_from, mu_to) = xs.get_mu_shift(xs.hit().unwrap());

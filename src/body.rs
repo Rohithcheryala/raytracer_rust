@@ -1,4 +1,5 @@
 use crate::{
+    cube::Cube,
     intersections::{Intersection, Intersections},
     material::Material,
     matrix::Matrix,
@@ -69,6 +70,7 @@ impl Intersectable for Body {
         match self {
             Body::Sphere(s) => s.material(),
             Body::Plane(p) => p.material(),
+            Body::Cube(c) => c.material(),
         }
     }
 
@@ -76,6 +78,7 @@ impl Intersectable for Body {
         match self {
             Body::Sphere(s) => s.material_mut(),
             Body::Plane(p) => p.material_mut(),
+            Body::Cube(c) => c.material_mut(),
         }
     }
 
@@ -83,6 +86,7 @@ impl Intersectable for Body {
         match self {
             Body::Sphere(s) => s.transform(),
             Body::Plane(p) => p.transform(),
+            Body::Cube(c) => c.transform(),
         }
     }
 
@@ -90,6 +94,7 @@ impl Intersectable for Body {
         match self {
             Body::Sphere(s) => s.intersect_in_object_space(ray),
             Body::Plane(p) => p.intersect_in_object_space(ray),
+            Body::Cube(c) => c.intersect_in_object_space(ray),
         }
     }
 
@@ -97,6 +102,7 @@ impl Intersectable for Body {
         match self {
             Body::Sphere(s) => s.normal_at_in_object_space(point),
             Body::Plane(p) => p.normal_at_in_object_space(point),
+            Body::Cube(c) => c.normal_at_in_object_space(point),
         }
     }
 }
@@ -105,6 +111,7 @@ impl Intersectable for Body {
 pub enum Body {
     Sphere(Sphere),
     Plane(Plane),
+    Cube(Cube),
 }
 
 impl From<Sphere> for Body {
@@ -128,5 +135,17 @@ impl From<Plane> for Body {
 impl From<&Plane> for Body {
     fn from(p: &Plane) -> Self {
         Body::Plane(*p)
+    }
+}
+
+impl From<Cube> for Body {
+    fn from(p: Cube) -> Self {
+        Body::Cube(p)
+    }
+}
+
+impl From<&Cube> for Body {
+    fn from(p: &Cube) -> Self {
+        Body::Cube(*p)
     }
 }

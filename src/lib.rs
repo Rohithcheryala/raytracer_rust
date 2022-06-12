@@ -3,6 +3,7 @@ pub mod camera;
 pub mod canvas;
 pub mod color;
 pub mod computed_intersection;
+pub mod cube;
 pub mod intersections;
 pub mod material;
 pub mod matrix;
@@ -40,12 +41,35 @@ impl RoundToNDecimalPlaces for f64 {
     }
 }
 
+#[macro_export]
+macro_rules! max {
+    ($a:expr, $b:expr) => {{
+        if ($a > $b) { $a } else { $b }
+    }};
+
+    ($a:expr, $($b:expr),+ $(,)?) => {{
+        max!($a,max!($($b),+))
+    }}
+}
+
+#[macro_export]
+macro_rules! min {
+    ($a:expr, $b:expr) => {{
+        if ($b > $a) { $a } else { $b }
+    }};
+
+    ($a:expr, $($b:expr),+ $(,)?) => {{
+        min!($a,min!($($b),+))
+    }}
+}
+
 use crate::{
     body::{Body, Intersectable},
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
     consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
+    cube::Cube,
     material::{Material, Phong, PhongLighting},
     matrix::Matrix,
     pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
@@ -519,6 +543,55 @@ pub fn chapter11_challenge() {
     camera
         .render_par(&world)
         .save_as_ppm("challenges/ch11-refract.ppm")
+        .unwrap();
+
+    let elapsed = now.elapsed();
+    println!("time taken: {} ms", elapsed.as_millis());
+}
+
+pub fn chapter12_challenge() {
+    println!("Chapter 12 challenge with multi-threading ...");
+    let now = Instant::now();
+
+    let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+
+    // Floor
+    let floor = Plane::new(
+        Matrix::Identity(),
+        Material::Phong(Phong {
+            pattern: Pattern::Checkers(Checkers::new(
+                Color::BLACK(),
+                Color::WHITE(),
+                Matrix::Identity(),
+                false,
+            )),
+            specular: 0.0,
+            reflectiveness: 0.5,
+            ..Default::default()
+        }),
+    );
+
+    let cube = Cube::new(
+        Matrix::Translation(0, 2, 0) * Matrix::rotation_Y(0.955531) * Matrix::rotation_X(-PI_BY_6),
+        Material::Phong(Phong {
+            reflectiveness: 0.2,
+            transparency: 0.8,
+            refractive_index: 1.5,
+            ..Default::default()
+        }),
+    );
+
+    let world = World::new(vec![light], vec![Body::from(floor), Body::from(cube)], 5);
+
+    let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
+        Tuple::Point(0.0, 3.5, -15.0),
+        Tuple::Point(0.0, 1.0, 0.0),
+        Tuple::Vector(0.0, 1.0, 0.0),
+    );
+
+    camera
+        .render_par(&world)
+        .save_as_ppm("challenges/ch12.ppm")
         .unwrap();
 
     let elapsed = now.elapsed();
