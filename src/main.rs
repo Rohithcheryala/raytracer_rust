@@ -6,5 +6,6 @@ fn main() {
     // raytracer_rust::chapter9_challenge();
     // raytracer_rust::chapter10_challenge();
     // raytracer_rust::chapter11_challenge();
-    raytracer_rust::chapter12_challenge();
+    // raytracer_rust::chapter12_challenge();
+    raytracer_rust::chapter13_challenge();
 }

@@ -1,5 +1,7 @@
 use crate::{
     cube::Cube,
+    cylinder::Cylinder,
+    double_cone::DoubleCone,
     intersections::{Intersection, Intersections},
     material::Material,
     matrix::Matrix,
@@ -65,12 +67,23 @@ where
     fn normal_at_in_object_space(&self, object_space_point: Tuple) -> Tuple;
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Body {
+    Sphere(Sphere),
+    Plane(Plane),
+    Cube(Cube),
+    Cylinder(Cylinder),
+    DoubleCone(DoubleCone),
+}
+
 impl Intersectable for Body {
     fn material(&self) -> &Material {
         match self {
             Body::Sphere(s) => s.material(),
             Body::Plane(p) => p.material(),
             Body::Cube(c) => c.material(),
+            Body::Cylinder(c) => c.material(),
+            Body::DoubleCone(dc) => dc.material(),
         }
     }
 
@@ -79,6 +92,8 @@ impl Intersectable for Body {
             Body::Sphere(s) => s.material_mut(),
             Body::Plane(p) => p.material_mut(),
             Body::Cube(c) => c.material_mut(),
+            Body::Cylinder(c) => c.material_mut(),
+            Body::DoubleCone(dc) => dc.material_mut(),
         }
     }
 
@@ -87,6 +102,8 @@ impl Intersectable for Body {
             Body::Sphere(s) => s.transform(),
             Body::Plane(p) => p.transform(),
             Body::Cube(c) => c.transform(),
+            Body::Cylinder(c) => c.transform(),
+            Body::DoubleCone(dc) => dc.transform(),
         }
     }
 
@@ -95,6 +112,8 @@ impl Intersectable for Body {
             Body::Sphere(s) => s.intersect_in_object_space(ray),
             Body::Plane(p) => p.intersect_in_object_space(ray),
             Body::Cube(c) => c.intersect_in_object_space(ray),
+            Body::Cylinder(c) => c.intersect_in_object_space(ray),
+            Body::DoubleCone(dc) => dc.intersect_in_object_space(ray),
         }
     }
 
@@ -103,15 +122,10 @@ impl Intersectable for Body {
             Body::Sphere(s) => s.normal_at_in_object_space(point),
             Body::Plane(p) => p.normal_at_in_object_space(point),
             Body::Cube(c) => c.normal_at_in_object_space(point),
+            Body::Cylinder(c) => c.normal_at_in_object_space(point),
+            Body::DoubleCone(dc) => dc.normal_at_in_object_space(point),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Body {
-    Sphere(Sphere),
-    Plane(Plane),
-    Cube(Cube),
 }
 
 impl From<Sphere> for Body {
@@ -147,5 +161,29 @@ impl From<Cube> for Body {
 impl From<&Cube> for Body {
     fn from(p: &Cube) -> Self {
         Body::Cube(*p)
+    }
+}
+
+impl From<Cylinder> for Body {
+    fn from(c: Cylinder) -> Self {
+        Body::Cylinder(c)
+    }
+}
+
+impl From<&Cylinder> for Body {
+    fn from(c: &Cylinder) -> Self {
+        Body::Cylinder(*c)
+    }
+}
+
+impl From<DoubleCone> for Body {
+    fn from(dc: DoubleCone) -> Self {
+        Body::DoubleCone(dc)
+    }
+}
+
+impl From<&DoubleCone> for Body {
+    fn from(dc: &DoubleCone) -> Self {
+        Body::DoubleCone(*dc)
     }
 }

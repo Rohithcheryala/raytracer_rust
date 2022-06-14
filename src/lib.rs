@@ -4,6 +4,8 @@ pub mod canvas;
 pub mod color;
 pub mod computed_intersection;
 pub mod cube;
+pub mod cylinder;
+pub mod double_cone;
 pub mod intersections;
 pub mod material;
 pub mod matrix;
@@ -68,8 +70,10 @@ use crate::{
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
-    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
+    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_4, PI_BY_6},
     cube::Cube,
+    cylinder::Cylinder,
+    double_cone::DoubleCone,
     material::{Material, Phong, PhongLighting},
     matrix::Matrix,
     pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
@@ -592,6 +596,83 @@ pub fn chapter12_challenge() {
     camera
         .render_par(&world)
         .save_as_ppm("challenges/ch12.ppm")
+        .unwrap();
+
+    let elapsed = now.elapsed();
+    println!("time taken: {} ms", elapsed.as_millis());
+}
+
+pub fn chapter13_challenge() {
+    println!("Chapter 13 challenge with multi-threading ...");
+    let now = Instant::now();
+
+    let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+
+    // Floor
+    let floor = Plane::new(
+        Matrix::Identity(),
+        Material::Phong(Phong {
+            pattern: Pattern::Checkers(Checkers::new(
+                Color::BLACK(),
+                Color::WHITE(),
+                Matrix::Identity(),
+                false,
+            )),
+            // specular: 0.0,
+            reflectiveness: 0.5,
+            ..Default::default()
+        }),
+    );
+
+    let cyl = Cylinder::new(
+        Matrix::Translation(-5, 2, 0) * Matrix::rotation_X(-PI_BY_3) * Matrix::rotation_Z(PI_BY_6),
+        Material::Phong(Phong {
+            pattern: Pattern::Gradient(Gradient::new(
+                Color::RED(),
+                Color::GREEN(),
+                Matrix::Translation(-1, 0, 0) * Matrix::Scaling(2, 1, 1),
+            )),
+            reflectiveness: 0.1,
+            // transparency: 0.5,
+            // refractive_index: 1.5,
+            ..Default::default()
+        }),
+        2.0,
+        true,
+    );
+
+    let dcone = DoubleCone::new(
+        Matrix::Translation(5, 2, 0), //* Matrix::rotation_X(PI_BY_3),// * Matrix::rotation_Z(PI_BY_6),
+        Material::Phong(Phong {
+            reflectiveness: 0.1,
+            pattern: Pattern::Striped(Striped::new(
+                Color::BLUE(),
+                Color::WHITE(),
+                Matrix::rotation_Z(-PI_BY_2) * Matrix::Scaling(0.1, 0.1, 0.1),
+            )),
+            // transparency: 0.5,
+            // refractive_index: 1.5,
+            ..Default::default()
+        }),
+        2.0,
+        true,
+    );
+
+    let world = World::new(
+        vec![light],
+        vec![Body::from(floor), Body::from(cyl), Body::from(dcone)],
+        5,
+    );
+
+    let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
+        Tuple::Point(0.0, 3.5, -15.0),
+        Tuple::Point(0.0, 1.0, 0.0),
+        Tuple::Vector(0.0, 1.0, 0.0),
+    );
+
+    camera
+        .render_par(&world)
+        .save_as_ppm("challenges/ch13.ppm")
         .unwrap();
 
     let elapsed = now.elapsed();

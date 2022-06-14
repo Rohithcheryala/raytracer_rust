@@ -1,5 +1,6 @@
 use crate::{
     body::Intersectable,
+    consts::EPSILON,
     material::{Material, Phong},
     matrix::Matrix,
     ray::Ray,
@@ -40,7 +41,11 @@ impl Intersectable for Plane {
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
-        vec![-object_space_ray.origin.y / object_space_ray.direction.y]
+        if object_space_ray.direction.y.abs() < EPSILON {
+            vec![]
+        } else {
+            vec![-object_space_ray.origin.y / object_space_ray.direction.y]
+        }
     }
 
     fn normal_at_in_object_space(&self, _object_space_point: Tuple) -> Tuple {
