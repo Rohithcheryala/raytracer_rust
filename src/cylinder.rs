@@ -1,5 +1,5 @@
 use crate::{
-    body::Intersectable, consts::EPSILON, material::Material, matrix::Matrix, ray::Ray,
+    body::{Intersectable, Body, IntoBody}, consts::EPSILON, material::Material, matrix::Matrix, ray::Ray,
     tuple::Tuple,
 };
 
@@ -103,6 +103,24 @@ impl Intersectable for Cylinder {
         } else {
             Tuple::Vector(object_space_point.x, 0.0, object_space_point.z)
         }
+    }
+}
+
+impl From<Cylinder> for Body {
+    fn from(c: Cylinder) -> Self {
+        Body::Cylinder(c)
+    }
+}
+
+impl From<&Cylinder> for Body {
+    fn from(c: &Cylinder) -> Self {
+        Body::Cylinder(*c)
+    }
+}
+
+impl IntoBody for Cylinder {
+    fn into_body(&self) -> Body {
+        Body::Cylinder(*self)
     }
 }
 

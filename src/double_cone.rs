@@ -1,5 +1,5 @@
 use crate::{
-    body::Intersectable, consts::EPSILON, material::Material, matrix::Matrix, ray::Ray,
+    body::{Intersectable, Body, IntoBody}, consts::EPSILON, material::Material, matrix::Matrix, ray::Ray,
     tuple::Tuple,
 };
 
@@ -108,5 +108,23 @@ impl Intersectable for DoubleCone {
         } else {
             Tuple::Vector(object_space_point.x, -y, object_space_point.z).normalize()
         }
+    }
+}
+
+impl From<DoubleCone> for Body {
+    fn from(dc: DoubleCone) -> Self {
+        Body::DoubleCone(dc)
+    }
+}
+
+impl From<&DoubleCone> for Body {
+    fn from(dc: &DoubleCone) -> Self {
+        Body::DoubleCone(*dc)
+    }
+}
+
+impl IntoBody for DoubleCone {
+    fn into_body(&self) -> Body {
+        Body::DoubleCone(*self)
     }
 }

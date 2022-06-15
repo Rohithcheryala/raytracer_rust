@@ -11,9 +11,13 @@ use crate::{
     tuple::Tuple,
 };
 
+pub trait IntoBody {
+    fn into_body(&self) -> Body;
+}
+
 pub trait Intersectable
 where
-    Self: Copy + Into<Body>,
+    Self: IntoBody,
 {
     fn material(&self) -> &Material;
     fn material_mut(&mut self) -> &mut Material;
@@ -37,7 +41,7 @@ where
         Intersections::new(
             result
                 .into_iter()
-                .map(|t| Intersection::new(t, (*self).into(), *ray))
+                .map(|t| Intersection::new(t, self.into_body(), *ray))
                 .collect(),
         )
     }
@@ -74,6 +78,12 @@ pub enum Body {
     Cube(Cube),
     Cylinder(Cylinder),
     DoubleCone(DoubleCone),
+}
+
+impl IntoBody for Body {
+    fn into_body(&self) -> Body {
+        *self
+    }
 }
 
 impl Intersectable for Body {
@@ -125,65 +135,5 @@ impl Intersectable for Body {
             Body::Cylinder(c) => c.normal_at_in_object_space(point),
             Body::DoubleCone(dc) => dc.normal_at_in_object_space(point),
         }
-    }
-}
-
-impl From<Sphere> for Body {
-    fn from(s: Sphere) -> Self {
-        Body::Sphere(s)
-    }
-}
-
-impl From<&Sphere> for Body {
-    fn from(s: &Sphere) -> Self {
-        Body::Sphere(*s)
-    }
-}
-
-impl From<Plane> for Body {
-    fn from(p: Plane) -> Self {
-        Body::Plane(p)
-    }
-}
-
-impl From<&Plane> for Body {
-    fn from(p: &Plane) -> Self {
-        Body::Plane(*p)
-    }
-}
-
-impl From<Cube> for Body {
-    fn from(p: Cube) -> Self {
-        Body::Cube(p)
-    }
-}
-
-impl From<&Cube> for Body {
-    fn from(p: &Cube) -> Self {
-        Body::Cube(*p)
-    }
-}
-
-impl From<Cylinder> for Body {
-    fn from(c: Cylinder) -> Self {
-        Body::Cylinder(c)
-    }
-}
-
-impl From<&Cylinder> for Body {
-    fn from(c: &Cylinder) -> Self {
-        Body::Cylinder(*c)
-    }
-}
-
-impl From<DoubleCone> for Body {
-    fn from(dc: DoubleCone) -> Self {
-        Body::DoubleCone(dc)
-    }
-}
-
-impl From<&DoubleCone> for Body {
-    fn from(dc: &DoubleCone) -> Self {
-        Body::DoubleCone(*dc)
     }
 }

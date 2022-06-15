@@ -70,7 +70,7 @@ use crate::{
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
-    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_4, PI_BY_6},
+    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
     cube::Cube,
     cylinder::Cylinder,
     double_cone::DoubleCone,

@@ -1,5 +1,10 @@
 use crate::{
-    body::Intersectable, consts::EPSILON, material::Material, matrix::Matrix, max, min, ray::Ray,
+    body::{Body, Intersectable, IntoBody},
+    consts::EPSILON,
+    material::Material,
+    matrix::Matrix,
+    max, min,
+    ray::Ray,
     tuple::Tuple,
 };
 
@@ -89,5 +94,23 @@ impl Intersectable for Cube {
         } else {
             panic!("What the shit")
         }
+    }
+}
+
+impl From<Cube> for Body {
+    fn from(p: Cube) -> Self {
+        Body::Cube(p)
+    }
+}
+
+impl From<&Cube> for Body {
+    fn from(p: &Cube) -> Self {
+        Body::Cube(*p)
+    }
+}
+
+impl IntoBody for Cube {
+    fn into_body(&self) -> Body {
+        Body::Cube(*self)
     }
 }

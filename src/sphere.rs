@@ -1,6 +1,6 @@
 use super::ray::Ray;
 use crate::{
-    body::Intersectable,
+    body::{Intersectable, Body, IntoBody},
     material::{Material, Phong},
     matrix::Matrix,
     tuple::Tuple,
@@ -67,6 +67,24 @@ impl Intersectable for Sphere {
 
     fn normal_at_in_object_space(&self, object_point: Tuple) -> Tuple {
         (object_point - Tuple::Point(0.0, 0.0, 0.0)).normalize()
+    }
+}
+
+impl From<Sphere> for Body {
+    fn from(s: Sphere) -> Self {
+        Body::Sphere(s)
+    }
+}
+
+impl From<&Sphere> for Body {
+    fn from(s: &Sphere) -> Self {
+        Body::Sphere(*s)
+    }
+}
+
+impl IntoBody for Sphere {
+    fn into_body(&self) -> Body {
+        Body::Sphere(*self)
     }
 }
 

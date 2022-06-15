@@ -1,5 +1,5 @@
 use crate::{
-    body::Intersectable,
+    body::{Intersectable, Body, IntoBody},
     consts::EPSILON,
     material::{Material, Phong},
     matrix::Matrix,
@@ -50,6 +50,24 @@ impl Intersectable for Plane {
 
     fn normal_at_in_object_space(&self, _object_space_point: Tuple) -> Tuple {
         Tuple::Vector(0.0, 1.0, 0.0)
+    }
+}
+
+impl From<Plane> for Body {
+    fn from(p: Plane) -> Self {
+        Body::Plane(p)
+    }
+}
+
+impl From<&Plane> for Body {
+    fn from(p: &Plane) -> Self {
+        Body::Plane(*p)
+    }
+}
+
+impl IntoBody for Plane {
+    fn into_body(&self) -> Body {
+        Body::Plane(*self)
     }
 }
 
