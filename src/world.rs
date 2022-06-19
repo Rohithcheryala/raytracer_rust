@@ -1,7 +1,10 @@
+use std::sync::{Arc, RwLock};
+
 use crate::{
     body::{Body, Intersectable},
     color::Color,
     computed_intersection::ComputedIntersection,
+    group::Group,
     intersections::Intersections,
     material::{Material, Phong, PhongLighting, Reflective, Refractive},
     matrix::Matrix,
@@ -16,14 +19,21 @@ use crate::{
 pub struct World {
     pub point_lights: Vec<PointLight>,
     pub bodies: Vec<Body>,
+    pub groups: Vec<Arc<RwLock<Group>>>,
     pub reflection_limit: usize,
 }
 
 impl World {
-    pub fn new(point_lights: Vec<PointLight>, bodies: Vec<Body>, reflection_limit: usize) -> Self {
+    pub fn new(
+        point_lights: Vec<PointLight>,
+        bodies: Vec<Body>,
+        groups: Vec<Arc<RwLock<Group>>>,
+        reflection_limit: usize,
+    ) -> Self {
         Self {
             point_lights,
             bodies,
+            groups,
             reflection_limit,
         }
     }
@@ -40,6 +50,10 @@ impl World {
         let mut xs = Intersections::default();
         self.bodies.iter().for_each(|s| {
             let x = s.intersect(&r);
+            xs.extend(x);
+        });
+        self.groups.iter().for_each(|grp| {
+            let x = Group::intersect(grp,&r);
             xs.extend(x);
         });
         xs.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
@@ -66,7 +80,7 @@ impl World {
         if let Some(intersection) = xs.hit() {
             let (mu_from, mu_to) = xs.get_mu_shift(intersection);
             let material = intersection.body.material();
-            let cs = intersection.to_computed(mu_from, mu_to);
+            let cs = intersection.as_computed(mu_from, mu_to);
             let surface_color = self.surface_color_at(&cs);
             let reflected_color = self.reflected_color_at(&cs, material, remaining_reflections);
             let refracted_color = self.refracted_color_at(&cs, material, remaining_reflections);
@@ -229,6 +243,7 @@ impl World {
                     .into(),
             ],
             reflection_limit: 0,
+            groups: vec![],
         }
     }
 }
@@ -299,6 +314,7 @@ mod tests {
                 Color::WHITE(),
             )],
             vec![s1.into(), s2.into()],
+            vec![],
             5,
         );
         let result = w.transparency_factor(Tuple::Point(100, 0, 0));

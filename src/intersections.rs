@@ -6,7 +6,7 @@ use crate::{
 };
 use std::ops::Index;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Intersection {
     pub t: f64,
     pub body: Body,
@@ -24,7 +24,7 @@ impl Intersection {
         Self { t, body, ray }
     }
 
-    pub fn to_computed(self, mu_from: f32, mu_to: f32) -> ComputedIntersection {
+    pub fn as_computed(&self, mu_from: f32, mu_to: f32) -> ComputedIntersection {
         let position = self.ray.position(self.t);
         let mut normalv = self.body.normal_at(position);
         let eyev = -self.ray.direction;
@@ -34,7 +34,7 @@ impl Intersection {
         }
         let reflectv = self.ray.direction.reflect(normalv);
         ComputedIntersection::new(
-            inside, position, self.body, eyev, normalv, reflectv, mu_from, mu_to,
+            inside, position, self.body.clone(), eyev, normalv, reflectv, mu_from, mu_to,
         )
     }
 }
@@ -95,17 +95,17 @@ impl Intersections {
 
     // FIXME: comeup with better algorithm.
     pub fn get_mu_shift(&self, intersection: &Intersection) -> (f32, f32) {
-        let mut containers: Vec<Body> = vec![];
+        let mut containers: Vec<&Body> = vec![];
         let (mut mu_from, mut mu_to) = (1.0, 1.0);
         for i in self.data.iter() {
             if i == intersection && !containers.is_empty() {
                 mu_from = containers.last().unwrap().material().refractive_index();
             }
-            if containers.contains(&i.body) {
-                let index = containers.iter().position(|x| x == &i.body).unwrap();
+            if containers.contains(&&i.body) {
+                let index = containers.iter().position(|x| x == &&i.body).unwrap();
                 containers.remove(index);
             } else {
-                containers.push(i.body);
+                containers.push(&i.body);
             }
 
             if i == intersection {

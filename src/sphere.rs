@@ -1,15 +1,25 @@
+use std::sync::{Arc, RwLock};
+
 use super::ray::Ray;
 use crate::{
-    body::{Intersectable, Body, IntoBody},
+    body::{Body, Intersectable, IntoBody},
+    group::Group,
     material::{Material, Phong},
     matrix::Matrix,
     tuple::Tuple,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Sphere {
+    pub parent: Option<Arc<RwLock<Group>>>,
     transform: Matrix<4>,
     material: Material,
+}
+
+impl PartialEq for Sphere {
+    fn eq(&self, other: &Self) -> bool {
+        self.transform == other.transform && self.material == other.material
+    }
 }
 
 impl Sphere {
@@ -17,6 +27,7 @@ impl Sphere {
         Self {
             transform,
             material,
+            parent: None,
         }
     }
 
@@ -40,8 +51,11 @@ impl Intersectable for Sphere {
         &mut self.material
     }
 
-    fn transform(&self) -> &Matrix<4> {
-        &self.transform
+    fn transform(&self) -> Matrix<4> {
+        if let Some(par) = &self.parent {
+            return Group::transform(&par).inverse() * self.transform;
+        }
+        self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
@@ -76,15 +90,9 @@ impl From<Sphere> for Body {
     }
 }
 
-impl From<&Sphere> for Body {
-    fn from(s: &Sphere) -> Self {
-        Body::Sphere(*s)
-    }
-}
-
 impl IntoBody for Sphere {
     fn into_body(&self) -> Body {
-        Body::Sphere(*self)
+        Body::Sphere(self.clone())
     }
 }
 
@@ -93,6 +101,7 @@ impl Default for Sphere {
         Self {
             transform: Matrix::Identity(),
             material: Material::Phong(Phong::default()),
+            parent: None,
         }
     }
 }

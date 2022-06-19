@@ -1,14 +1,31 @@
+use std::sync::{Arc, RwLock};
+
 use crate::{
-    body::{Intersectable, Body, IntoBody}, consts::EPSILON, material::Material, matrix::Matrix, ray::Ray,
+    body::{Body, Intersectable, IntoBody},
+    consts::EPSILON,
+    group::Group,
+    material::Material,
+    matrix::Matrix,
+    ray::Ray,
     tuple::Tuple,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct DoubleCone {
+    pub parent: Option<Arc<RwLock<Group>>>,
     transform: Matrix<4>,
     material: Material,
     height: f64,
     is_closed: bool,
+}
+
+impl PartialEq for DoubleCone {
+    fn eq(&self, other: &Self) -> bool {
+        self.transform == other.transform
+            && self.material == other.material
+            && self.height == other.height
+            && self.is_closed == other.is_closed
+    }
 }
 
 impl DoubleCone {
@@ -18,6 +35,7 @@ impl DoubleCone {
             material,
             height,
             is_closed,
+            parent: None,
         }
     }
 }
@@ -31,8 +49,11 @@ impl Intersectable for DoubleCone {
         &mut self.material
     }
 
-    fn transform(&self) -> &Matrix<4> {
-        &self.transform
+    fn transform(&self) -> Matrix<4_usize> {
+        if let Some(par) = &self.parent {
+            return Group::transform(&par).inverse() * self.transform;
+        }
+        self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
@@ -117,14 +138,14 @@ impl From<DoubleCone> for Body {
     }
 }
 
-impl From<&DoubleCone> for Body {
-    fn from(dc: &DoubleCone) -> Self {
-        Body::DoubleCone(*dc)
-    }
-}
+// impl From<&DoubleCone> for Body {
+//     fn from(dc: &DoubleCone) -> Self {
+//         Body::DoubleCone(*dc)
+//     }
+// }
 
 impl IntoBody for DoubleCone {
     fn into_body(&self) -> Body {
-        Body::DoubleCone(*self)
+        Body::DoubleCone(self.clone())
     }
 }

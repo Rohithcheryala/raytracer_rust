@@ -1,14 +1,31 @@
+use std::sync::{Arc, RwLock};
+
 use crate::{
-    body::{Intersectable, Body, IntoBody}, consts::EPSILON, material::Material, matrix::Matrix, ray::Ray,
+    body::{Body, Intersectable, IntoBody},
+    consts::EPSILON,
+    group::Group,
+    material::Material,
+    matrix::Matrix,
+    ray::Ray,
     tuple::Tuple,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Cylinder {
+    pub parent: Option<Arc<RwLock<Group>>>,
     pub transform: Matrix<4>,
     pub material: Material,
     pub height: f64,
     pub is_closed: bool,
+}
+
+impl PartialEq for Cylinder {
+    fn eq(&self, other: &Self) -> bool {
+        self.transform == other.transform
+            && self.material == other.material
+            && self.height == other.height
+            && self.is_closed == other.is_closed
+    }
 }
 
 impl Cylinder {
@@ -18,6 +35,7 @@ impl Cylinder {
             material,
             height,
             is_closed,
+            parent: None,
         }
     }
 }
@@ -31,8 +49,11 @@ impl Intersectable for Cylinder {
         &mut self.material
     }
 
-    fn transform(&self) -> &Matrix<4> {
-        &self.transform
+    fn transform(&self) -> Matrix<4_usize> {
+        if let Some(par) = &self.parent {
+            return Group::transform(&par).inverse() * self.transform;
+        }
+        self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
@@ -112,15 +133,15 @@ impl From<Cylinder> for Body {
     }
 }
 
-impl From<&Cylinder> for Body {
-    fn from(c: &Cylinder) -> Self {
-        Body::Cylinder(*c)
-    }
-}
+// impl From<&Cylinder> for Body {
+//     fn from(c: &Cylinder) -> Self {
+//         Body::Cylinder(*c)
+//     }
+// }
 
 impl IntoBody for Cylinder {
     fn into_body(&self) -> Body {
-        Body::Cylinder(*self)
+        Body::Cylinder(self.clone())
     }
 }
 

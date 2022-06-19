@@ -1,16 +1,26 @@
+use std::sync::{Arc, RwLock};
+
 use crate::{
-    body::{Intersectable, Body, IntoBody},
+    body::{Body, Intersectable, IntoBody},
     consts::EPSILON,
+    group::Group,
     material::{Material, Phong},
     matrix::Matrix,
     ray::Ray,
     tuple::Tuple,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Plane {
+    pub parent: Option<Arc<RwLock<Group>>>,
     transform: Matrix<4>,
     material: Material,
+}
+
+impl PartialEq for Plane {
+    fn eq(&self, other: &Self) -> bool {
+        self.transform == other.transform && self.material == other.material
+    }
 }
 
 impl Plane {
@@ -18,6 +28,7 @@ impl Plane {
         Self {
             transform,
             material,
+            parent: None,
         }
     }
 
@@ -36,8 +47,11 @@ impl Intersectable for Plane {
         &mut self.material
     }
 
-    fn transform(&self) -> &Matrix<4> {
-        &self.transform
+    fn transform(&self) -> Matrix<4_usize> {
+        if let Some(par) = &self.parent {
+            return Group::transform(&par).inverse() * self.transform;
+        }
+        self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
@@ -59,15 +73,15 @@ impl From<Plane> for Body {
     }
 }
 
-impl From<&Plane> for Body {
-    fn from(p: &Plane) -> Self {
-        Body::Plane(*p)
-    }
-}
+// impl From<&Plane> for Body {
+//     fn from(p: &Plane) -> Self {
+//         Body::Plane(*p)
+//     }
+// }
 
 impl IntoBody for Plane {
     fn into_body(&self) -> Body {
-        Body::Plane(*self)
+        Body::Plane(self.clone())
     }
 }
 
@@ -76,6 +90,7 @@ impl Default for Plane {
         Self {
             material: Phong::default().into(),
             transform: Matrix::Identity(),
+            parent: None,
         }
     }
 }

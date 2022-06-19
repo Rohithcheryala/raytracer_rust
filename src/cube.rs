@@ -1,6 +1,9 @@
+use std::sync::{Arc, RwLock};
+
 use crate::{
     body::{Body, Intersectable, IntoBody},
     consts::EPSILON,
+    group::Group,
     material::Material,
     matrix::Matrix,
     max, min,
@@ -8,10 +11,17 @@ use crate::{
     tuple::Tuple,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Cube {
+    pub parent: Option<Arc<RwLock<Group>>>,
     transform: Matrix<4>,
     material: Material,
+}
+
+impl PartialEq for Cube {
+    fn eq(&self, other: &Self) -> bool {
+        self.transform == other.transform && self.material == other.material
+    }
 }
 
 impl Cube {
@@ -19,6 +29,7 @@ impl Cube {
         Self {
             transform,
             material,
+            parent: None,
         }
     }
 
@@ -42,8 +53,11 @@ impl Intersectable for Cube {
         &mut self.material
     }
 
-    fn transform(&self) -> &Matrix<4> {
-        &self.transform
+    fn transform(&self) -> Matrix<4_usize> {
+        if let Some(par) = &self.parent {
+            return Group::transform(&par).inverse() * self.transform;
+        }
+        self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
@@ -103,14 +117,14 @@ impl From<Cube> for Body {
     }
 }
 
-impl From<&Cube> for Body {
-    fn from(p: &Cube) -> Self {
-        Body::Cube(*p)
-    }
-}
+// impl From<&Cube> for Body {
+//     fn from(p: &Cube) -> Self {
+//         Body::Cube(*p)
+//     }
+// }
 
 impl IntoBody for Cube {
     fn into_body(&self) -> Body {
-        Body::Cube(*self)
+        Body::Cube(self.clone())
     }
 }

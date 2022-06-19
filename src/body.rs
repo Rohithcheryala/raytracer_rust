@@ -21,7 +21,7 @@ where
 {
     fn material(&self) -> &Material;
     fn material_mut(&mut self) -> &mut Material;
-    fn transform(&self) -> &Matrix<4>;
+    fn transform(&self) -> Matrix<4>;
 
     /// ```
     /// use raytracer_rust::sphere::Sphere;
@@ -71,7 +71,7 @@ where
     fn normal_at_in_object_space(&self, object_space_point: Tuple) -> Tuple;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Body {
     Sphere(Sphere),
     Plane(Plane),
@@ -82,7 +82,7 @@ pub enum Body {
 
 impl IntoBody for Body {
     fn into_body(&self) -> Body {
-        *self
+        self.clone()
     }
 }
 
@@ -107,7 +107,7 @@ impl Intersectable for Body {
         }
     }
 
-    fn transform(&self) -> &Matrix<4> {
+    fn transform(&self) -> Matrix<4> {
         match self {
             Body::Sphere(s) => s.transform(),
             Body::Plane(p) => p.transform(),

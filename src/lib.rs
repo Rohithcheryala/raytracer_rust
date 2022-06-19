@@ -6,6 +6,7 @@ pub mod computed_intersection;
 pub mod cube;
 pub mod cylinder;
 pub mod double_cone;
+pub mod group;
 pub mod intersections;
 pub mod material;
 pub mod matrix;
@@ -70,10 +71,11 @@ use crate::{
     camera::Camera,
     canvas::{Canvas, ToPPM},
     color::Color,
-    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_6},
+    consts::{PI, PI_BY_2, PI_BY_3, PI_BY_4, PI_BY_6},
     cube::Cube,
     cylinder::Cylinder,
     double_cone::DoubleCone,
+    group::Group,
     material::{Material, Phong, PhongLighting},
     matrix::Matrix,
     pattern::{Checkers, Flat, Gradient, Pattern, Ring, Striped},
@@ -346,6 +348,7 @@ pub fn chapter9_challenge() {
             Body::from(middle_sphere),
             Body::from(right_sphere),
         ],
+        vec![],
         0,
     );
 
@@ -448,6 +451,7 @@ pub fn chapter10_challenge() {
             Body::from(mid_sphere),
             Body::from(right_sphere),
         ],
+        vec![],
         0,
     );
 
@@ -535,6 +539,7 @@ pub fn chapter11_challenge() {
             Body::from(mid_sphere),
             Body::from(right_sphere),
         ],
+        vec![],
         5,
     );
 
@@ -585,7 +590,12 @@ pub fn chapter12_challenge() {
         }),
     );
 
-    let world = World::new(vec![light], vec![Body::from(floor), Body::from(cube)], 5);
+    let world = World::new(
+        vec![light],
+        vec![Body::from(floor), Body::from(cube)],
+        vec![],
+        5,
+    );
 
     let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
         Tuple::Point(0.0, 3.5, -15.0),
@@ -661,6 +671,7 @@ pub fn chapter13_challenge() {
     let world = World::new(
         vec![light],
         vec![Body::from(floor), Body::from(cyl), Body::from(dcone)],
+        vec![],
         5,
     );
 
@@ -675,6 +686,111 @@ pub fn chapter13_challenge() {
         .save_as_ppm("challenges/ch13.ppm")
         .unwrap();
 
+    let elapsed = now.elapsed();
+    println!("time taken: {} ms", elapsed.as_millis());
+}
+
+pub fn chapter14_challenge() {
+    let now = Instant::now();
+
+    let _floor = Plane::new(
+        Matrix::Translation(0, 0, -10),
+        Material::Phong(Phong {
+            pattern: Pattern::Checkers(Checkers::new(
+                Color::BLACK(),
+                Color::WHITE(),
+                Matrix::Identity(),
+                false,
+            )),
+            specular: 0.0,
+            reflectiveness: 0.5,
+            ..Default::default()
+        }),
+    );
+
+    let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+
+    let group = Group::new(Matrix::rotation_Z(-PI_BY_4), Vec::new());
+    let s1 = Sphere::new(
+        Matrix::Translation(2, 0, 0) * Matrix::Scaling(0.4, 0.4, 0.4),
+        Material::Phong(Phong::default()),
+    );
+    let s2 = Cube::new(
+        Matrix::Translation(0, 2, 0) * Matrix::Scaling(0.4, 0.4, 0.4),
+        Material::Phong(Phong {
+            pattern: Pattern::Flat(Flat::new(Color::RED())),
+            ..Default::default()
+        }),
+    );
+    let s3 = Sphere::new(
+        Matrix::Translation(-2, 0, 0) * Matrix::Scaling(0.4, 0.4, 0.4),
+        Material::Phong(Phong::default()),
+    );
+    let s4 = Sphere::new(
+        Matrix::Translation(0, -2, 0) * Matrix::Scaling(0.4, 0.4, 0.4),
+        Material::Phong(Phong::default()),
+    );
+    let cyl = Cylinder::new(
+        Matrix::Translation(-5, 2, 0) * Matrix::rotation_X(-PI_BY_3) * Matrix::rotation_Z(PI_BY_6),
+        Material::Phong(Phong {
+            pattern: Pattern::Gradient(Gradient::new(
+                Color::RED(),
+                Color::GREEN(),
+                Matrix::Translation(-1, 0, 0) * Matrix::Scaling(2, 1, 1),
+            )),
+            reflectiveness: 0.1,
+            ..Default::default()
+        }),
+        2.0,
+        true,
+    );
+
+    let dcone = DoubleCone::new(
+        Matrix::Translation(5, 2, 0), //* Matrix::rotation_X(PI_BY_3),// * Matrix::rotation_Z(PI_BY_6),
+        Material::Phong(Phong {
+            reflectiveness: 0.1,
+            pattern: Pattern::Striped(Striped::new(
+                Color::BLUE(),
+                Color::WHITE(),
+                Matrix::rotation_Z(-PI_BY_2) * Matrix::Scaling(0.1, 0.1, 0.1),
+            )),
+            ..Default::default()
+        }),
+        2.0,
+        true,
+    );
+    // Group::add_shape(s1.into(), &group);
+    Group::add_shape(s2.into(), &group);
+    Group::add_shape(s3.into(), &group);
+    Group::add_shape(s4.into(), &group);
+    Group::add_shape(cyl.into(), &group);
+    Group::add_shape(dcone.into(), &group);
+
+    let world = World::new(
+        vec![light],
+        vec![
+            // floor.into(),
+            s1.into(),
+            // s2.into(),
+            // s3.into(),
+            // s4.into(),
+            // cyl.into(),
+            // dcone.into(),
+        ],
+        vec![group],
+        5,
+    );
+
+    let camera = Camera::new(1620, 1080, PI_BY_3).look_at_from_position(
+        Tuple::Point(0.0, 3.5, -15.0),
+        Tuple::Point(0.0, 1.0, 0.0),
+        Tuple::Vector(0.0, 1.0, 0.0),
+    );
+
+    camera
+        .render_par(&world)
+        .save_as_ppm("challenges/ch14.ppm")
+        .unwrap();
     let elapsed = now.elapsed();
     println!("time taken: {} ms", elapsed.as_millis());
 }
