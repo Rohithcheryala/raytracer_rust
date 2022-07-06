@@ -710,7 +710,7 @@ pub fn chapter14_challenge() {
 
     let light = PointLight::new(Tuple::Point(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-    let group = Group::new(Matrix::rotation_Z(-PI_BY_4), Vec::new());
+    let mut group = Group::new(Matrix::rotation_Z(-PI_BY_4), Vec::new());
     let s1 = Sphere::new(
         Matrix::Translation(2, 0, 0) * Matrix::Scaling(0.4, 0.4, 0.4),
         Material::Phong(Phong::default()),
@@ -760,11 +760,11 @@ pub fn chapter14_challenge() {
         true,
     );
     // Group::add_shape(s1.into(), &group);
-    Group::add_shape(s2.into(), &group);
-    Group::add_shape(s3.into(), &group);
-    Group::add_shape(s4.into(), &group);
-    Group::add_shape(cyl.into(), &group);
-    Group::add_shape(dcone.into(), &group);
+    group.add_shape(s2.into());
+    group.add_shape(s3.into());
+    group.add_shape(s4.into());
+    group.add_shape(cyl.into());
+    group.add_shape(dcone.into());
 
     let world = World::new(
         vec![light],
@@ -777,7 +777,7 @@ pub fn chapter14_challenge() {
             // cyl.into(),
             // dcone.into(),
         ],
-        vec![group],
+        vec![group.build()],
         5,
     );
 

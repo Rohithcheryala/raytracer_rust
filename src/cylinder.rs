@@ -1,9 +1,6 @@
-use std::sync::{Arc, RwLock};
-
 use crate::{
     body::{Body, Intersectable, IntoBody},
     consts::EPSILON,
-    group::Group,
     material::Material,
     matrix::Matrix,
     ray::Ray,
@@ -12,7 +9,6 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct Cylinder {
-    pub parent: Option<Arc<RwLock<Group>>>,
     pub transform: Matrix<4>,
     pub material: Material,
     pub height: f64,
@@ -35,7 +31,6 @@ impl Cylinder {
             material,
             height,
             is_closed,
-            parent: None,
         }
     }
 }
@@ -50,10 +45,11 @@ impl Intersectable for Cylinder {
     }
 
     fn transform(&self) -> Matrix<4_usize> {
-        if let Some(par) = &self.parent {
-            return Group::transform(&par).inverse() * self.transform;
-        }
         self.transform
+    }
+
+    fn transform_mut(&mut self) -> &mut Matrix<4_usize> {
+        &mut self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {

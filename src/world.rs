@@ -1,5 +1,3 @@
-use std::sync::{Arc, RwLock};
-
 use crate::{
     body::{Body, Intersectable},
     color::Color,
@@ -19,7 +17,7 @@ use crate::{
 pub struct World {
     pub point_lights: Vec<PointLight>,
     pub bodies: Vec<Body>,
-    pub groups: Vec<Arc<RwLock<Group>>>,
+    pub groups: Vec<Group>,
     pub reflection_limit: usize,
 }
 
@@ -27,7 +25,7 @@ impl World {
     pub fn new(
         point_lights: Vec<PointLight>,
         bodies: Vec<Body>,
-        groups: Vec<Arc<RwLock<Group>>>,
+        groups: Vec<Group>,
         reflection_limit: usize,
     ) -> Self {
         Self {
@@ -53,7 +51,7 @@ impl World {
             xs.extend(x);
         });
         self.groups.iter().for_each(|grp| {
-            let x = Group::intersect(grp,&r);
+            let x = Group::intersect(grp, &r);
             xs.extend(x);
         });
         xs.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
@@ -215,7 +213,7 @@ impl World {
             .fold(1.0, |acc, i| {
                 if hit_objects.contains(&i.body.material()) {
                     acc
-                } else {
+                } else { 
                     hit_objects.push(i.body.material());
                     acc * i.body.material().transparency() as f64
                 }

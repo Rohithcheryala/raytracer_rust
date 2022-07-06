@@ -1,9 +1,6 @@
-use std::sync::{Arc, RwLock};
-
 use super::ray::Ray;
 use crate::{
     body::{Body, Intersectable, IntoBody},
-    group::Group,
     material::{Material, Phong},
     matrix::Matrix,
     tuple::Tuple,
@@ -11,7 +8,6 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Sphere {
-    pub parent: Option<Arc<RwLock<Group>>>,
     transform: Matrix<4>,
     material: Material,
 }
@@ -27,7 +23,6 @@ impl Sphere {
         Self {
             transform,
             material,
-            parent: None,
         }
     }
 
@@ -52,10 +47,11 @@ impl Intersectable for Sphere {
     }
 
     fn transform(&self) -> Matrix<4> {
-        if let Some(par) = &self.parent {
-            return Group::transform(&par).inverse() * self.transform;
-        }
         self.transform
+    }
+
+    fn transform_mut(&mut self) -> &mut Matrix<4_usize> {
+        &mut self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
@@ -101,7 +97,6 @@ impl Default for Sphere {
         Self {
             transform: Matrix::Identity(),
             material: Material::Phong(Phong::default()),
-            parent: None,
         }
     }
 }

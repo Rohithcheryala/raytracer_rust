@@ -22,6 +22,7 @@ where
     fn material(&self) -> &Material;
     fn material_mut(&mut self) -> &mut Material;
     fn transform(&self) -> Matrix<4>;
+    fn transform_mut(&mut self) -> &mut Matrix<4>;
 
     /// ```
     /// use raytracer_rust::sphere::Sphere;
@@ -114,6 +115,16 @@ impl Intersectable for Body {
             Body::Cube(c) => c.transform(),
             Body::Cylinder(c) => c.transform(),
             Body::DoubleCone(dc) => dc.transform(),
+        }
+    }
+
+    fn transform_mut(&mut self) -> &mut Matrix<4> {
+        match self {
+            Body::Sphere(s) => s.transform_mut(),
+            Body::Plane(p) => p.transform_mut(),
+            Body::Cube(c) => c.transform_mut(),
+            Body::Cylinder(c) => c.transform_mut(),
+            Body::DoubleCone(dc) => dc.transform_mut(),
         }
     }
 

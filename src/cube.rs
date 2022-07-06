@@ -1,9 +1,6 @@
-use std::sync::{Arc, RwLock};
-
 use crate::{
     body::{Body, Intersectable, IntoBody},
     consts::EPSILON,
-    group::Group,
     material::Material,
     matrix::Matrix,
     max, min,
@@ -13,7 +10,6 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct Cube {
-    pub parent: Option<Arc<RwLock<Group>>>,
     transform: Matrix<4>,
     material: Material,
 }
@@ -29,7 +25,6 @@ impl Cube {
         Self {
             transform,
             material,
-            parent: None,
         }
     }
 
@@ -53,11 +48,12 @@ impl Intersectable for Cube {
         &mut self.material
     }
 
-    fn transform(&self) -> Matrix<4_usize> {
-        if let Some(par) = &self.parent {
-            return Group::transform(&par).inverse() * self.transform;
-        }
+    fn transform(&self) -> Matrix<4> {
         self.transform
+    }
+
+    fn transform_mut(&mut self) -> &mut Matrix<4_usize> {
+        &mut self.transform
     }
 
     fn intersect_in_object_space(&self, object_space_ray: &Ray) -> Vec<f64> {
